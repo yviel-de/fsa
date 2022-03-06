@@ -1,0 +1,10 @@
+base:
+  name: myhost.mydomain.local
+  user: myusername
+  # either one of these two
+  nopass: false
+  userpw: my crypted value
+
+net:
+  ifaces:
+    - name: eth0

@@ -1,0 +1,23 @@
+---
+- name: "obsd : dhcpd : template the config"
+  template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcpd.conf
+    mode: 0600
+  notify:
+    - "dhcpd_syntax"
+    - "dhcpd_restart"
+  tags:
+    - net
+    - dhcp
+
+- name: "obsd : dhcpd : create logfile"
+  file:
+    path: "/var/log/dhcpd"
+    state: touch
+    mode: 0640
+  changed_when: false
+  tags:
+    - net
+    - dhcp
+

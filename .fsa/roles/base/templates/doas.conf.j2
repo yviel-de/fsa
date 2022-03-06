@@ -1,0 +1,20 @@
+{% if base.nopass | default(false) %}
+permit nopass {{ base.user }}
+{% elif base.userpw is defined %}
+permit {{ base.user }}
+{% endif %}
+{% if net.dns is defined and net.dns.filter | default(true) %}
+{% if net.dns.filter.whitelist is defined %}
+permit nopass root as _adblock cmd /usr/local/bin/unbound-adblock args -O openbsd -w /var/unbound/db/adblock_whitelist
+{% else %}
+permit nopass root as _adblock cmd /usr/local/bin/unbound-adblock args -O openbsd
+{% endif %}
+permit nopass _adblock cmd /usr/sbin/unbound-control args -q status
+permit nopass _adblock cmd /usr/sbin/unbound-control args -q flush_zone unbound-adblock
+permit nopass _adblock cmd /usr/sbin/unbound-control args -q auth_zone_reload unbound-adblock
+{% endif %}
+{% if net.public | default(false) %}
+permit nopass root as _pfbadhost cmd /usr/local/bin/pf-badhost args -O openbsd
+permit nopass _pfbadhost cmd /sbin/pfctl args -nf /etc/pf.conf
+permit nopass _pfbadhost cmd /sbin/pfctl args -t pfbadhost -T replace -f /etc/pf-badhost.txt
+{% endif %}

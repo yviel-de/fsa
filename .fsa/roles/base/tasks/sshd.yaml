@@ -1,0 +1,46 @@
+---
+- name: "sshd : deny root-ssh"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'PermitRootLogin no'
+    regexp: '^PermitRootLogin'
+  notify:
+    - "sshd_syntax"
+    - "sshd_restart"
+  tags:
+    - sshd
+
+- name: "sshd : deny passwd ssh"
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'PasswordAuthentication yes'
+    regexp: '^PasswordAuthentication'
+  notify:
+    - "sshd_syntax"
+    - "sshd_restart"
+  tags:
+    - sshd
+
+- name: "sshd : proper ssh algos"
+  blockinfile:
+    path: /etc/ssh/sshd_config
+    insertafter: EOF
+    block: |
+      KexAlgorithms           curve25519-sha256@libssh.org
+      HostKeyAlgorithms       ssh-ed25519
+      Ciphers                 chacha20-poly1305@openssh.com
+      MACs                    hmac-sha2-512-etm@openssh.com
+    marker: "# strong algos for bot defence {mark}"
+  notify:
+    - "sshd_syntax"
+    - "sshd_restart"
+  when: base.sshd.tune | default(true)
+  tags:
+    - sshd
+
+- name: "sshd : openbsd : run sshguard"
+  include_tasks: openbsd_sshguard.yaml
+  when: base.sshd.guard | default(true) and ansible_facts['os_family']|lower == 'openbsd'
+  tags:
+    - sshd
+

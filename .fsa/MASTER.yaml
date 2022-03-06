@@ -1,0 +1,18 @@
+#!ansible
+# File: master playbook
+# The master playbook which runs all roles
+# function: all information
+- hosts: all
+  become_method: doas
+
+# function: all roles
+# some comment
+  roles:
+    - base
+    - net
+    - web
+    - virt
+    - mail
+    - update
+    - apps
+

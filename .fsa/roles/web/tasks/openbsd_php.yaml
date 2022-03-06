@@ -1,0 +1,56 @@
+---
+- name: "obsd : php : determine available versions"
+  shell: "ftp -o - https://cdn.openbsd.org/pub/OpenBSD/7.0/packages-stable/{{ ansible_facts.machine }}/ | tr '=' '\n' | grep php-{{ web.httpd.php.version }} | cut -d '>' -f1 | grep -v debug | tail -1 | cut -d '-' -f2 | cut -d '.' -f1-3"
+  register: phpversion
+  changed_when: false
+  tags:
+    - web
+    - httpd
+
+- name: "obsd : php : install php"
+  community.general.openbsd_pkg:
+    name:
+      - "php-{{ phpversion.stdout }}"
+  tags:
+    - web
+    - httpd
+
+- name: "obsd : php : install libs"
+  community.general.openbsd_pkg:
+    name:
+      - "php-{{ item }}-{{ phpversion.stdout }}"
+  loop: "{{ web.httpd.php.libs }}"
+  when: web.httpd.php.libs is defined
+  tags:
+    - web
+    - httpd
+
+- name: "obsd : php : conf base"
+  copy:
+    src: "/usr/local/share/examples/php-{{ phpversion.stdout.split('.')[0:2] | join('.') }}/{{ item.src }}"
+    dest: "/etc/php-{{ phpversion.stdout.split('.')[0:2] | join('.') }}/{{ item.dst }}"
+    remote_src: true
+  loop:
+   - { src: 'php.ini-production', dst: 'php.ini' }
+   - { src: 'opcache.ini', dst: 'opcache.ini' }
+  notify:
+    - "php_syntax"
+    - "php_restart"
+  tags:
+    - web
+    - httpd
+
+- name: "obsd : php : conf libs"
+  copy:
+    src: "/usr/local/share/examples/php-{{ phpversion.stdout.split('.')[0:2] | join('.') }}/{{ item }}.ini"
+    dest: "/etc/php-{{ phpversion.stdout.split('.')[0:2] | join('.') }}/"
+    remote_src: true
+  loop: "{{ web.httpd.php.libs }}"
+  when: web.httpd.php.libs is defined
+  notify:
+    - "php_syntax"
+    - "php_restart"
+  tags:
+    - web
+    - httpd
+

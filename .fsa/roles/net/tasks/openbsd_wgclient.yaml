@@ -1,0 +1,48 @@
+---
+- name: "obsd : vpn : client : grab pubkey"
+  shell: "cat /etc/wireguard/public.key"
+  delegate_to: "{{ net.vpn.peer.name }}"
+  register: "peer_pubkey"
+  no_log: true
+  changed_when: false
+  notify:
+    - "wg_netstart"
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : client : grab privkey"
+  shell: "cat /etc/wireguard/secret.key"
+  register: "host_privkey"
+  no_log: true
+  changed_when: false
+  notify:
+    - "wg_netstart"
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : client : grab psk"
+  shell: "cat /etc/wireguard/preshared.key"
+  delegate_to: "{{ net.vpn.peer.name }}"
+  register: "peer_psk"
+  no_log: true
+  changed_when: false
+  when: net.vpn.psk | default(false)
+  notify:
+    - "wg_netstart"
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : client : set up iface"
+  template:
+    src: hostname.wgX.j2
+    dest: /etc/hostname.wg0
+    mode: 0600
+  notify:
+    - "wg_netstart"
+  tags:
+    - net
+    - vpn
+

@@ -1,0 +1,10 @@
+{% if mail.users is defined %}
+{% for user in mail.users %}
+{{ user.name }} {{ user.pass }}
+{% endfor %}
+{% endif %}
+{% if mail.boxes is defined %}
+{% for box in mail.boxes %}
+{{ box.addr }} {{ box.pass }}
+{% endfor %}
+{% endif %}

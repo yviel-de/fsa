@@ -1,0 +1,35 @@
+---
+- name: "base: sanity check"
+  fail:
+    msg: "need either userpw or nopass"
+  when: base.userpw is undefined and not base.nopass | default(false)
+
+- name: "base : universal base"
+  include_tasks: base.yaml
+  tags:
+    - base
+    - sshd
+
+# pretty much everything's connected to it bc of syslog & cron
+- name: "base : OpenBSD base"
+  include_tasks: openbsd_base.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+  tags:
+    - base
+    - cron
+    - net
+    - routes
+    - vpn
+    - fw
+    - web
+    - mail
+    - dhcp
+    - dns
+    - relay
+
+- name: "base : Debian base"
+  include_tasks: debian_base.yaml
+  when: ansible_facts['os_family']|lower == 'debian'
+  tags:
+    - base
+

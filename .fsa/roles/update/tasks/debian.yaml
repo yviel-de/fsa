@@ -1,0 +1,8 @@
+---
+- name: "deb : install base packages"
+  apt:
+    name: "htop vim"
+    state: present
+  tags:
+    - update
+

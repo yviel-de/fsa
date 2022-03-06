@@ -1,0 +1,75 @@
+---
+- name: "obsd : dkim : install dkim filter"
+  community.general.openbsd_pkg:
+    name:
+      - opensmtpd-filter-dkimsign--
+    state: present
+  tags:
+    - mail
+    - listen
+    - domains
+  when: not mail.listen | selectattr('filter', 'eq', 'spam') | length > 0
+
+- name: "obsd : dkim : configure rspamd"
+  template:
+    src: dkim_signing.conf.j2
+    dest: /etc/rspamd/local.d/dkim_signing.conf
+  notify:
+    - "rspamd_syntax"
+    - "rspamd_restart"
+  tags:
+    - mail
+    - listen
+    - domains
+  when: mail.listen | selectattr('filter', 'eq', 'spam') | length > 0
+
+- name: "obsd : dkim : create keyfolder"
+  file:
+    path: /etc/mail/dkim/
+    state: directory
+    owner: _rspamd
+    group: _dkimsign
+    mode: 0770
+  tags:
+    - mail
+    - listen
+    - domains
+
+- name: "obsd : dkim : generate privkeys"
+  shell: "if [ ! -f /etc/mail/dkim/{{ item }}.key ]; then openssl genrsa -out /etc/mail/dkim/{{ item }}.key 2048 >/dev/null 2>&1 && echo changed; fi"
+  register: dkimkeys
+  changed_when: dkimkeys.stdout == "changed"
+  loop: "{{ mail.domains }}"
+  notify:
+    - "rspamd_syntax"
+    - "rspamd_restart"
+  tags:
+    - mail
+    - listen
+    - domains
+
+- name: "obsd : dkim : generate pubkeys"
+  shell: "if [ ! -f /etc/mail/dkim/{{ item }}_pub.txt ]; then openssl rsa -in /etc/mail/dkim/{{ item }}.key -pubout -out /etc/mail/dkim/{{ item }}_pub.txt >/dev/null 2>&1 && echo changed; fi"
+  register: dkimpubkeys
+  changed_when: dkimpubkeys.stdout == "changed"
+  loop: "{{ mail.domains }}"
+  notify:
+    - "dkim_newkeys_echo"
+  tags:
+    - mail
+    - listen
+    - domains
+    - setup
+
+- name: "obsd : dkim : build DNS records"
+  shell: 'for i in $(ls /etc/mail/dkim/*_pub.txt); do key=$(cat $i | grep -v KEY | tr -d "\n"); name=$(echo $i | cut -d _ -f1 | rev | cut -d / -f1 | rev); echo -n "--------------------------------\nDNS RECORDS REQUIRED FOR $name:\n- MX:          $name - 10 {{ base.name }}\n- SPF (TXT):   $name - \"v=spf1 mx -all\"\n- DKIM (TXT):  {{ ansible_hostname }}._domainkey.$name - \"v=DKIM1;k=rsa;p=$key;\"\n- DMARC (TXT): _dmarc.$name - \"v=DMARC1;p=reject;rua=mailto:dmarc@$name;sp=reject;aspf=s;adkim=s;ri=2592000\"\n\n"; done'
+  register: dkim_pubs_out
+  when: mail.setup | default(true)
+  notify:
+    - "dkim_newkeys_echo"
+  tags:
+    - mail
+    - listen
+    - domains
+    - setup
+

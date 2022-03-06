@@ -1,0 +1,83 @@
+# $OpenBSD: unbound.conf,v 1.21 2020/10/28 11:35:58 sthen Exp $
+
+server:
+    interface: 127.0.0.1
+{% for addr in net.dns.listen %}
+    interface: {{ addr }}
+{% endfor %}
+    do-ip6: no
+
+    access-control: 0.0.0.0/0 refuse
+    access-control: 127.0.0.0/8 allow
+{% for expr in net.dns.access %}
+    access-control: {{ expr }}
+{% endfor %}
+
+    hide-identity: yes
+    hide-version: yes
+
+    auto-trust-anchor-file: "/var/unbound/db/root.key"
+    val-log-level: 2
+    qname-minimisation: yes
+
+    aggressive-nsec: yes
+    verbosity: 1
+    log-queries: yes
+    use-caps-for-id: yes
+
+    cache-min-ttl: 3600
+    cache-max-ttl: 86400
+    prefetch: yes
+    unwanted-reply-threshold: 10000
+    do-not-query-localhost: yes
+    val-clean-additional: yes
+
+{% if net.dns.localzone is defined %}
+    local-zone: "{{ net.dns.localzone }}" static
+{% endif %}
+{% for iface in net.ifaces %}
+{% if iface.dhcp is defined %}
+{% for range in iface.dhcp %}
+{% if range.domain is defined %}
+{% set domain = range.domain %}
+{% for lease in range.leases %}
+{% if lease.dns | default(true) %}
+    local-data: "{{ lease.name }}.{{ range.domain }}. IN A {{ lease.ip }}"
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% if net.dns.localdata is defined %}
+{% for data in net.dns.localdata %}
+    local-data: "{{ data }}"
+{% endfor %}
+{% endif %}
+
+{% if net.dns.filter | default(true) %}
+    module-config: "respip validator iterator"
+remote-control:
+    control-enable: yes
+
+rpz:
+    name: "unbound-adblock"
+    zonefile: "/var/unbound/db/adblock.rpz"
+    rpz-log: yes
+    rpz-log-name: "unbound-adblock"
+{% endif %}
+
+{% if net.dns.forward is defined %}
+forward-zone:
+    name: "."
+{% if net.dns.forward.tls | default(false, true) %}
+    forward-first: no
+    forward-tls-upstream: yes
+{% else %}
+    forward-first: yes
+{% endif %}
+{% for addr in net.dns.forward.addr %}
+    forward-addr: {{ addr }}
+{% endfor %}
+{% endif %}
+

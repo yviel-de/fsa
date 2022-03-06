@@ -1,0 +1,34 @@
+---
+- name: "obsd : run httpd"
+  include_tasks: openbsd_httpd.yaml
+  when: web.httpd is defined or mail is defined or web.sites | selectattr('tls', 'defined') | length > 0
+  tags:
+    - web
+    - mail
+    - sites
+    - auth
+
+- name: "obsd : run relayd"
+  include_tasks: openbsd_relayd.yaml
+  when: web.relay is defined
+  tags:
+    - web
+    - relay
+    - sites
+
+- name: "obsd : run php"
+  include_tasks: openbsd_php.yaml
+  when: web.httpd.php is defined
+  tags:
+    - web
+    - httpd
+
+- name: "obsd : run acme"
+  include_tasks: openbsd_acme.yaml
+  when: mail is defined or web.sites | selectattr('tls', 'defined') | length > 0
+  tags:
+    - web
+    - mail
+    - sites
+    - relay
+

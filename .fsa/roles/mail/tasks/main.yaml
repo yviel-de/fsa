@@ -1,0 +1,21 @@
+---
+- name: "mail : OpenBSD smtpd"
+  include_tasks: openbsd_smtpd.yaml
+  when: mail is defined and ansible_facts['os_family']|lower == 'openbsd'
+  tags:
+    - mail
+    - listen
+    - domains
+    - boxes
+    - users
+    - virtuals
+    - whitelist
+    - setup
+
+#- name: "Debian specifics
+#  include_tasks: debian.yaml
+#  when: ansible_facts['os_family']|lower == 'debian'
+#
+#- name: "Cross-platform base
+#  include_tasks: httpd.yam
+#

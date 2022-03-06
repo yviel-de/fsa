@@ -1,0 +1,19 @@
+{% if net.vpn.peers is defined %}
+wgkey {{ host_privkey.stdout }}
+wgport {{ net.vpn.port | default('51820') }}
+{% for client in net.vpn.peers %}
+{% for key in peer_pubkeys.results %}
+{% if key.item.name == client.name %}
+wgpeer {{ key.stdout }} wgaip {{ client.addr }}/32{% if client.keepalive is defined %} wgpka {{ client.keepalive }}{% endif %}{% if client.psk is defined %} wgpsk {{ own_psk.stdout }}{% endif %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+
+inet {{ net.vpn.addr }}/24
+{% else %}
+wgkey {{ host_privkey.stdout }}
+wgpeer {{ peer_pubkey.stdout }} wgendpoint {{ net.vpn.peer.addr }} {{ net.vpn.peer.port | default('51820') }} wgaip 0.0.0.0/0{% if net.vpn.peer.psk is defined %} wgpsk {{ peer_psk.stdout }}{% endif %}{% if net.vpn.peer.keepalive is defined %} wgpka {{ net.vpn.peer.keepalive }}{% endif %}
+
+inet {{ net.vpn.addr }}/24
+{% endif %}
+up

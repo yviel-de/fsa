@@ -1,0 +1,8 @@
+{% if (item.parent is defined and item.vlanid is defined) %}
+parent {{ item.parent }} vnetid {{ item.vlanid }}
+{% endif %}
+{% if item.addr is defined %}
+inet {{ item.addr }} {{ item.netmask }}
+{% else %}
+dhcp
+{% endif %}

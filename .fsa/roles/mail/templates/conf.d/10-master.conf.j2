@@ -1,0 +1,23 @@
+service imap-login {
+  inet_listener imap {
+    port = 143
+  }
+  inet_listener imaps {
+    port = 993
+    ssl = yes
+  }
+}
+service submission-login {
+  inet_listener submission {
+    port = 587
+  }
+}
+service lmtp {
+  unix_listener lmtp {
+    mode = 0666
+  }
+}
+service imap {
+}
+service submission {
+}

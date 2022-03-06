@@ -1,0 +1,10 @@
+{% if mail.boxes is defined %}
+{% for box in mail.boxes %}
+{{ box.addr }}  vmail
+{% endfor %}
+{% endif %}
+{% if mail.virtuals is defined %}
+{% for entry in mail.virtuals %}
+{{ entry }}
+{% endfor %}
+{% endif %}

@@ -1,0 +1,124 @@
+#!/bin/sh
+#
+# ansible wrapper script for fsa
+# v0.1.0
+#
+
+# make sure we're in the right place
+for dir in config .fsa; do
+    if ! [ -d $dir ]; then
+        echo "Configuration not found."
+        echo "You must be within a FSAv0.1.0 directory."
+        exit 1
+    fi
+done
+
+# genpass from a diff script, to be refactored
+if [ "$1" == "genpass" ]; then
+    function abort {
+        echo "Invalid input, aborting."
+        exit 1
+    }
+
+    which openssl >/dev/null || exit 1
+
+    read -p "Select host to run against: " targethost
+
+    [ "$targethost" == "" ] && abort
+    ansible-inventory --graph | grep -v \@ | tr -d '| -' | grep -q "$targethost" || abort
+
+    uname=$(ssh "$targethost" "uname")
+
+    shift
+    if [ -z $1 ]; then
+        pass="$(openssl rand -base64 48)"
+    else
+        pass="$@"
+    fi
+
+    if [ "$uname" == "OpenBSD" ]; then
+        syspass=$(ssh "$targethost" "echo $pass | encrypt")
+        mailpass=$(ssh "$targethost" "echo $pass | smtpctl encrypt")
+        echo "Cleartext: $pass"
+        echo "Syspass: $syspass"
+        echo "Mailpass: $mailpass"
+    fi
+    exit 0
+fi
+
+# they would be overwritten
+if [ -d .fsa/host_vars ]; then
+    echo "Can't use FSA with .fsa/host_vars in place."
+    echo "If you don't know why it's there, chances are you can remove it."
+    exit 1
+fi
+
+args=""
+while [ $# -gt 0 ]; do
+    case $1 in
+        -l|--limit)
+            args="$args -l $2 "
+            shift
+            shift
+            ;;
+        -c|--config|-t|--tags)
+            args="$args -t $2 "
+            shift
+            shift
+            ;;
+        -u|--updates)
+            updateonly=true
+            shift
+            ;;
+        -f|--finder)
+            finderonly=true
+            shift
+            ;;
+        -h|--help)
+            helponly=true
+            shift
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
+
+if [ "$helponly" == "true" ]; then
+    cat << EOF
+#### FSA v0.1.0 ####
+-l [--limit]: limits execution to specific hosts
+-c [--config]: limits configuration to specific blocks
+-u [--updates]: perform only updates
+-f [--finder]: run the fact-finder
+-h [--help]: display this information
+genpass: generate passwords and hashes
+EOF
+    exit 0
+fi
+# set up inventory and host_vars
+cp -r config .fsa/host_vars
+# put together run command
+if ! [ -z "$updateonly" ]; then
+    playbook="update"
+elif ! [ -z "$finderonly" ]; then
+    playbook="finder"
+else
+    playbook="MASTER"
+fi
+ansiblecmd="ansible-playbook --inventory=inventory .fsa/$playbook.yaml"
+if ! [ -z "$args" ]; then
+    ansiblecmd="$ansiblecmd $args"
+fi
+
+# exec
+echo "##############"
+echo "# FSA v0.1.0 #"
+if [ -L /usr/local/bin/fsa ]; then
+    echo "# $(readlink /usr/local/bin/fsa) #"
+fi
+echo "##############"
+ANSIBLE_CONFIG=.fsa/ansible.cfg $ansiblecmd
+# clean up
+rm -rf .fsa/host_vars
+

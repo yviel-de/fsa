@@ -1,0 +1,25 @@
+---
+- name: "sshd_syntax"
+  shell: sshd -T
+
+- name: "sshd_restart"
+  service:
+    name: sshd
+    state: restarted
+    enabled: true
+
+- name: "sshguard_restart"
+  service:
+    name: sshguard
+    state: restarted
+    enabled: true
+
+- name: "syslogd_restart"
+  service:
+    name: syslogd
+    state: restarted
+    enabled: true
+
+- name: "newaliases"
+  shell: newaliases
+

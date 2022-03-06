@@ -1,0 +1,56 @@
+---
+# haven't found a better way to gen the privkey before upping the iface
+- name: "obsd : vpn : install wgconf"
+  community.general.openbsd_pkg:
+    name: wireguard-tools
+    state: present
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : create keyfolder"
+  file:
+    path: /etc/wireguard
+    state: directory
+    mode: 0700
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : generate wgkeys"
+  shell: "if ! [ -f /etc/wireguard/{{ item.name }}.key ]; then wg {{ item.act }} > /etc/wireguard/{{ item.name }}.key; echo 'changed'; fi"
+  loop:
+    - { name: "secret", act: "genkey" }
+    - { name: "preshared", act: "genpsk" }
+    - { name: "public", act: "pubkey < /etc/wireguard/secret.key" }
+  register: keygen_result
+  changed_when: keygen_result.stdout == 'changed'
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : set key permissions"
+  file:
+    path: "/etc/wireguard/{{ item }}.key"
+    mode: 0600
+  loop:
+    - secret
+    - preshared
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : server"
+  include_tasks: openbsd_wgserver.yaml
+  when: net.vpn.peers is defined
+  tags:
+    - net
+    - vpn
+
+- name: "obsd : vpn : client"
+  include_tasks: openbsd_wgclient.yaml
+  when: net.vpn.peer is defined
+  tags:
+    - net
+    - vpn
+

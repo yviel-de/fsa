@@ -1,0 +1,39 @@
+---
+- name: "smtpd_syntax"
+  shell: smtpd -n
+
+- name: "smtpd_restart"
+  service:
+    name: smtpd
+    state: restarted
+    enabled: true
+
+- name: "dovecot_syntax"
+  shell: doveconf
+
+- name: "dovecot_restart"
+  service:
+    name: dovecot
+    state: restarted
+    enabled: true
+
+- name: "redis_start"
+  service:
+    name: redis
+    state: started
+    enabled: true
+
+- name: "rspamd_syntax"
+  shell: rspamadm configtest
+
+- name: "rspamd_restart"
+  service:
+    name: rspamd
+    state: restarted
+    enabled: true
+
+# must be last in file (and mail last role in book) so it's done very last so it's not lost in the noise
+- name: "dkim_newkeys_echo"
+  debug:
+    msg: "{{ dkim_pubs_out.stdout }}"
+

@@ -1,0 +1,94 @@
+---
+- name: "obsd : vmd : architecture check"
+  fail:
+    msg: "VMD only runs on x64... sorry"
+  when: "{{ ansible_facts.machine }} != 'amd64'"
+
+- name: "obsd : vmd : template the config"
+  template:
+    src: vm.conf.j2
+    dest: /etc/vm.conf
+    mode: 0600
+  notify:
+    - "vmd_syntax"
+    - "vmd_running"
+    - "vmd_reload"
+  tags:
+    - virt
+
+- name: "obsd : vmd : set up bridge"
+  template:
+    src: hostname.bridge.j2
+    dest: /etc/hostname.bridge0
+    mode: 0600
+  notify: vmd_netstart
+  tags:
+    - virt
+
+- name: "obsd : vmd : create home for disks"
+  file:
+    path: /home/vms
+    state: directory
+    mode: 0700
+  tags:
+    - virt
+
+# failed_when to handle already existing disks
+- name: "obsd : vmd : create disks"
+  shell: "vmctl create -s {{ item.size }} /home/vms/{{ item.name }}.img"
+  loop: "{{ virt.vms }}"
+  failed_when: false
+  register: disk
+  changed_when: disk.rc == 0
+  tags:
+    - virt
+
+- name: "obsd : vmd : create iso home"
+  file:
+    path: /home/isos
+    state: directory
+    mode: 0700
+  tags:
+    - virt
+
+- name: "obsd : vmd : inst : verify selection"
+  fail:
+    msg: "install must be one of: openbsd, debian, alpine"
+  when: item.install is defined and (item.install != "openbsd" and item.install != "debian" and item.install != "alpine")
+  loop: "{{ virt.vms }}"
+  tags:
+    - virt
+
+- name: "obsd : vmd : inst : generate random string"
+  set_fact:
+    randomid: "{{ lookup('community.general.random_string', length=16, special=false) }}"
+  tags:
+    - virt
+
+- name: "obsd : vmd : inst : install helpers"
+  community.general.openbsd_pkg:
+    name:
+      - xorriso--
+    state: present
+  when: virt.vms | selectattr('install', 'defined') | length > 0 and ((virt.vms | selectattr('install', 'eq', 'debian') | length > 0) or (virt.vms | selectattr('install', 'eq', 'alpine') | length > 0))
+  tags:
+    - virt
+
+- name: "obsd : vmd : inst : build openbsd"
+  include_tasks: openbsd_obsdimg.yaml
+  when: virt.vms | selectattr('install', 'defined') | length > 0 and virt.vms | selectattr('install', 'eq', 'openbsd') | length > 0
+  tags:
+    - virt
+
+- name: "obsd: vmd : inst : build debian"
+  include_tasks: openbsd_debimg.yaml
+  when: virt.vms | selectattr('install', 'defined') | length > 0 and virt.vms | selectattr('install', 'eq', 'debian') | length > 0
+  tags:
+    - virt
+
+- name: "obsd: vmd : inst : build alpine"
+  include_tasks: openbsd_alpimg.yaml
+  when: virt.vms | selectattr('install', 'defined') | length > 0 and virt.vms | selectattr('install', 'eq', 'alpine') | length > 0
+  tags:
+    - virt
+

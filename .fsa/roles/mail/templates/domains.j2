@@ -1,0 +1,5 @@
+{% if mail.domains is defined %}
+{% for domain in mail.domains %}
+{{ domain }}
+{% endfor %}
+{% endif %}

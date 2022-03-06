@@ -1,0 +1,53 @@
+---
+- name: "base : set root password"
+  user:
+    name: root
+    password: "{{ base.rootpw }}"
+  when: base.rootpw is defined
+  tags:
+    - base
+
+- name: "base : template rc files"
+  template:
+    src: "{{ item }}.j2"
+    dest: "~/.{{ item }}"
+  with_items:
+    - vimrc
+    - tmux.conf
+  tags:
+    - base
+
+- name: "base : template root rcs"
+  template:
+    src: "{{ item }}.j2"
+    dest: "/root/.{{ item }}"
+  with_items:
+    - vimrc
+  tags:
+    - base
+
+- name: "base : template motd"
+  template:
+    src: motd.j2
+    dest: /etc/motd
+  tags:
+    - base
+
+- name: "base : set up mailto"
+  lineinfile:
+    path: /etc/mail/aliases
+    regexp: '^root:*'
+    line: "root: {{ base.mailto }}"
+  notify:
+    - "newaliases"
+  when: base.mailto is defined
+  tags:
+    - base
+
+- name: "base : run sshd"
+  include_tasks: sshd.yaml
+  when: base.sshd.enabled | default(true)
+  tags:
+    - base
+    - sshd
+

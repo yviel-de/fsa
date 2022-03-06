@@ -1,0 +1,40 @@
+#	$OpenBSD: pf.conf,v 1.55 2017/12/03 20:40:04 sthen Exp $
+
+set skip on lo
+
+match in all scrub (no-df max-mss 1440)
+block return	# block stateless traffic
+pass		# establish keep-state
+
+# By default, do not permit remote connections to X11
+block return in on ! lo0 proto tcp to port 6000:6010
+
+# Port build user does not need network
+block return out log proto {tcp udp} user _pbuild
+
+pass inet proto icmp all icmp-type 8 code 0
+
+{% if net.public | default(false) %}
+table <pfbadhost> persist file "/etc/pf-badhost.txt"
+block in quick on egress from <pfbadhost>
+block out quick on egress to <pfbadhost>
+{% endif %}
+{% if base.sshd.guard | default('true') %}
+table <sshguard> persist
+block in proto tcp from <sshguard>
+{% endif %}
+{% if net.vpn is defined %}
+{% if net.vpn.peers is defined %}
+pass in on wg0
+pass in on {{ net.vpn.iface }} inet proto udp {% if net.vpn.peer.addr is defined %}from {{ net.vpn.peer.addr }} {% endif %}to any port {{ net.vpn.port | default('51820') }}
+{% endif %}
+pass out on {{ net.vpn.iface }} inet from (wg0:network) nat-to ({{ net.vpn.iface }}:0)
+{% endif %}
+{% if net.routing is defined and net.routing %}
+pass out on egress from any nat-to(egress:0)
+{% endif %}
+{% if net.fw.rules is defined %}
+{% for rule in net.fw.rules %}
+{{ rule.act }} {{ rule.dir }}{% if rule.iface is defined %} on {{ rule.iface }}{% endif %}{% if rule.proto is defined %} inet proto {{ rule.proto }}{% endif %}{% if rule.from is defined %} from {{ rule.from }}{% endif %}{% if rule.to is defined %} to {{ rule.to }}{% endif %}{% if rule.port is defined %} port {{ rule.port }}{% endif %}{% if rule.rdrto is defined and rule.dir == 'in' %} rdr-to {{ rule.rdrto }}{% if rule.rdrport is defined %} port {{ rule.rdrport }}{% endif %}{% endif %}{% if rule.natto is defined and rule.dir == 'out' %} nat-to {% if rule.natto | ipaddr %}{{ rule.natto }}{% else %}({{ rule.natto }}:0){% endif %}{% endif %}
+{% endfor %}
+{% endif %}

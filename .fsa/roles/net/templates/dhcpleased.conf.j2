@@ -1,0 +1,3 @@
+{% for iface in net.ifaces %}
+interface {{ iface.name }} { ignore dns }
+{% endfor %}

@@ -1,0 +1,43 @@
+{% for iface in net.ifaces %}
+{% if iface.addr is defined or iface.netmask is defined %}
+    subnet {{ iface.addr }} netmask {{ iface.netmask }} {
+{% if iface.dhcp is defined %}
+{% for subnet in iface.dhcp %}
+{% if subnet.range is defined %}
+        range {{ subnet.range }};
+{% endif %}
+{% if subnet.domain is defined %}
+        option domain-name "{{ subnet.domain }}";
+{% endif %}
+
+{% if subnet.routers is defined %}
+        option routers {{ subnet.routers }};
+{% else %}
+        option routers {{ iface.addr }};
+{% endif %}
+{% if subnet.dnssrv is defined %}
+        option domain-name-servers {{ subnet.dnssrv }};
+{% elif net.dns is defined %}
+        option domain-name-servers {{ iface.addr }};
+{% endif %}
+{% if (subnet.deny_unknown is defined and subnet.deny_unknown) %}
+        deny unknown-clients;
+{% endif %}
+{% if subnet.lease_time is defined %}
+        max-lease-time {{ subnet.lease_time }};
+{% endif %}
+
+{% if subnet.leases is defined %}
+{% for lease in subnet.leases %}
+        host {{ lease.name }} {
+            hardware ethernet {{ lease.mac }};
+            fixed-address {{ lease.ip }};
+        }
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+    }
+{% endif %}
+{% endfor %}
+

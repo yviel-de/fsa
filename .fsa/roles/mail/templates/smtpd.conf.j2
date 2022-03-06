@@ -1,0 +1,88 @@
+#	$OpenBSD: smtpd.conf,v 1.14 2019/11/26 20:14:38 gilles Exp $
+
+{% if mail.listen | selectattr('tls', 'defined') %}
+pki {{ base.name }} cert "/etc/ssl/{{ base.name }}.fullchain.pem"
+pki {{ base.name }} key "/etc/ssl/private/{{ base.name }}.key"
+{% endif %}
+
+table aliases file:/etc/mail/aliases
+{% if mail.domains is defined %}
+table domains file:/etc/mail/domains
+{% endif %}
+{% if mail.whitelist is defined %}
+table whitelist file:/etc/mail/whitelist
+{% endif %}
+{% if mail.boxes is defined or mail.virtuals is defined %}
+table virtuals file:/etc/mail/virtuals
+{% endif %}
+{% if mail.boxes is defined or mail.users is defined or mail.listen | selectattr('auth', 'defined') | length > 0 %}
+table passwd file:/etc/mail/passwd
+{% endif %}
+
+{% if mail.listen | selectattr('filter', 'defined') | length > 0 %}
+filter "check_rdns" phase connect match !rdns junk
+filter "check_fcrdns" phase connect match !fcrdns junk
+{% endif %}
+{% if mail.listen | selectattr('filter', 'eq', 'spam') | length > 0 %}
+filter "senderscore" proc-exec "filter-senderscore -blockBelow 10 -junkBelow 70 -slowFactor 9001"
+filter "rspamd" proc-exec "filter-rspamd"
+{% endif %}
+{% if mail.listen | selectattr('dkim', 'true') | length > 0 %}
+{% if not mail.listen | selectattr('filter', 'eq', 'spam') | length > 0 %}
+{% for domain in mail.domains %}
+filter "dkimsign-{{ domain }}" proc-exec "filter-dkimsign -d {{ domain }} -s {{ ansible_hostname }} -k /etc/mail/dkim/{{ domain }}.key" user _dkimsign group _dkimsign
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if mail.whitelist is defined %}
+filter "whitelist" phase connect match !src <whitelist> disconnect "550 denied"
+{% endif %}
+
+{% if mail.listen is defined %}
+{% for port in mail.listen %}
+{% set ns = namespace(filterlist=[]) %}
+{% if port.filter == 'true' or port.filter == 'spam' %}
+{% set ns.filterlist = ns.filterlist + [ "check_rdns" ] %}
+{% set ns.filterlist = ns.filterlist + [ "check_fcrdns" ] %}
+{% endif %}
+{% if port.filter == 'spam' %}
+{% set ns.filterlist = ns.filterlist + [ "senderscore" ] %}
+{% set ns.filterlist = ns.filterlist + [ "rspamd" ] %}
+{% endif %}
+{% if port.dkim is defined and port.dkim %}
+{% if mail.listen | selectattr('filter', 'eq', 'spam') | length > 0 %}
+{% set ns.filterlist = ns.filterlist + [ "rspamd" ] %}
+{% else %}
+{% for domain in mail.domains %}
+{% set ns.filterlist = ns.filterlist + [ "dkimsign-" + domain ] %}
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if port.whitelist is defined and port.whitelist %}
+{% set ns.filterlist = ns.filterlist + [ "whitelist" ] %}
+{% endif %}
+{# it's ugly af on one line, i know. until i get dynamic backslashes it cant be avoided \#}
+listen on {{ port.addr }}{% if port.port is defined %} port {{ port.port }}{% endif %}{% if port.tls is defined and port.tls == 'force' %} tls-require pki {{ base.name }}{% elif port.tls is defined and port.tls %} tls pki {{ base.name }}{% endif %}{% if port.auth is defined and port.auth %} auth <passwd>{% endif %}{% if port.name is defined %} hostname {{ port.name }}{% endif %}{% if ns.filterlist != [] %} filter { "{{ ns.filterlist | unique | join ('", "') }}" }{% endif %}
+
+{% endfor %}
+{% else %}
+    listen on socket
+{% endif %}
+
+action "incoming" \
+{% if mail.boxes is defined %}
+    lmtp "/var/dovecot/lmtp" rcpt-to virtual <virtuals>
+{% else %}
+    mbox alias <aliases>
+{% endif %}
+action "outgoing" relay helo {{ base.name }}
+
+match from any for domain <domains> action "incoming"
+match from local for any action "outgoing"
+{% if mail.whitelist is defined %}
+match from src <whitelist> for any action "outgoing"
+{% endif %}
+{% if mail.listen | selectattr('auth', 'true') | length > 0 %}
+match auth from any for any action "outgoing"
+{% endif %}
+

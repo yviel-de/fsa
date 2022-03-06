@@ -1,0 +1,9 @@
+allow_username_mismatch = true;
+{% for domain in mail.domains %}
+domain {
+    {{ domain }} {
+        path: "/etc/mail/dkim/{{ domain }}.key";
+        selector = "{{ ansible_hostname }}";
+    }
+}
+{% endfor %}

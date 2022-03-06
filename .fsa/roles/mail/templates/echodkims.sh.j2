@@ -1,0 +1,20 @@
+#!/bin/bash
+keys=$(find /etc/mail/dkim/ -name '*_pub.txt')
+for i in $keys; do
+    name=$(echo $i | cut -d '_' -f1 | rev | cut -d '/' -f1 | rev)
+    key=$(cat $i | grep -v PUBLIC | tr -d '\n')
+    echo "################################"
+    echo ""
+    echo "DKIM OUTPUT FOR $name - TXT RECORDS REQUIRED"
+    echo ""
+    echo "DKIM Record: dkim._domainkey.$name"
+    echo "Value: \"v=DKIM1;k=rsa;p=$key;\""
+    echo ""
+    echo "SPF Record: $name"
+    echo "Value: \"v=spf1 mx -all\""
+    echo ""
+    echo "DMARC Record: _dmarc.$name"
+    echo "Value: \"v=DMARC1;p=reject;rua=mailto:dmarc@$name;sp=reject;aspf=s;adkim=s;ri=15552000\""
+    echo ""
+done
+echo "################################"

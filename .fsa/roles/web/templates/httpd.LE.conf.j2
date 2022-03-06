@@ -1,0 +1,13 @@
+# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+
+server "*" {
+	listen on * port 80
+	location "/.well-known/acme-challenge/*" {
+		root "/acme"
+		request strip 2
+	}
+	location * {
+		block return 302 "https://$HTTP_HOST$REQUEST_URI"
+	}
+}
+

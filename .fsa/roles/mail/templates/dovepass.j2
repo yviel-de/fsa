@@ -1,0 +1,6 @@
+{% if mail.boxes is defined %}
+{% for box in mail.boxes %}
+{{ box.addr }}:{{ box.pass }}{% if box.whitelist is defined and box.whitelist %}::::::allow_nets={{ mail.whitelist | join(',') }}{% endif %}
+
+{% endfor %}
+{% endif %}

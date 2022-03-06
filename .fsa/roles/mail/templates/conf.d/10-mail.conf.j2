@@ -1,0 +1,10 @@
+namespace inbox {
+  inbox = yes
+}
+mmap_disable = yes
+first_valid_uid = 1000
+mail_plugin_dir = /usr/local/lib/dovecot
+protocol !indexer-worker {
+}
+mbox_write_locks = fcntl
+mail_location = maildir:/home/vmail/%d/%n

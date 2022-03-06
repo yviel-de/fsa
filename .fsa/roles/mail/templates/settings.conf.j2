@@ -1,0 +1,14 @@
+dkim {
+    id = "dkim";
+    authenticated = true;
+    apply {
+        symbols_enabled = ["DKIM_SIGNED"];
+        groups_enabled = ["dkim"];
+        flags = ["skip_process"];
+        actions {
+            reject = 100.0;
+            greylist = 100.0;
+            "add header" = 100.0;
+        }
+    }
+}

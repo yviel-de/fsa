@@ -1,0 +1,5 @@
+protocol imap {
+{% if mail.listen | selectattr('filter', 'eq', 'spam') | length > 0 %}
+    mail_plugins = $mail_plugins imap_sieve
+{% endif %}
+}

@@ -1,0 +1,60 @@
+---
+- name: "obsd : imgs : deb : determine version"
+  shell: ftp -o - https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/ | tr '=' '\n' | grep '"debian-[0-9][0-9]\.[0-9]\.[0-9]-amd64-netinst.iso"' | cut -d '>' -f1 | tr -d '"' | head -1
+  register: deb_latest
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : download time notif"
+  debug:
+    msg: "Downloading the latest Debian ISO. This will take a while."
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : download latest iso"
+  get_url:
+    url: "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/{{ deb_latest.stdout }}"
+    dest: "/home/isos/debian_staging_{{ randomid }}.iso"
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : stage files"
+  shell: "xorriso -osirrox on -indev /home/isos/debian_staging_{{ randomid }}.iso -extract / /home/isos/debian_staging_files_{{ randomid }}"
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : conf serial output"
+  shell: "{{ item }}"
+  loop:
+    - "echo -n 'serial 0 115200\nconsole 0\npath\ninclude menu.cfg\ndefault vesamenu.c32\nprompt 0\ntimeout 0' > /home/isos/debian_staging_files_{{ randomid }}/isolinux/isolinux.cfg"
+    - "sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/adtxt.cfg"
+    - "sed -i'' 's/---/--- console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/adtxt.cfg"
+    - "sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/txt.cfg"
+    - "sed -i'' 's/---/--- console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/txt.cfg"
+    - "sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/boot/grub/grub.cfg"
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : copy bootloader"
+  copy:
+    src: isohdpfx.bin
+    dest: /home/isos/isohdpfx.bin
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : repackage iso"
+  shell: "xorriso -as mkisofs -o /home/isos/debian.iso -isohybrid-mbr /home/isos/isohdpfx.bin -c isolinux/boot.cat -b isolinux/isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table /home/isos/debian_staging_files_{{ randomid }}"
+  tags:
+    - virt
+
+- name: "obsd : imgs : deb : clean up"
+  file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/home/isos/debian_staging_files_{{ randomid }}"
+    - "/home/isos/debian_staging_{{ randomid }}.iso"
+    - "/home/isos/isohdpfx.bin"
+  tags:
+    - virt
+

@@ -1,0 +1,12 @@
+ssl = required
+disable_plaintext_auth = yes
+auth_mechanisms = plain
+passdb {
+    args = scheme=blf-crypt /etc/mail/dovepass
+    driver = passwd-file
+}
+
+userdb {
+    args = uid=vmail gid=vmail home=/home/vmail/%d/%n
+    driver = static
+}

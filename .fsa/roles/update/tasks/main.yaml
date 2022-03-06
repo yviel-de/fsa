@@ -1,0 +1,11 @@
+---
+- name: "update : OpenBSD updates"
+  include_tasks: openbsd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+  tags:
+    - update
+
+#- name: Debian specifics
+#  include_tasks: debian.yaml
+#  when: ansible_facts['os_family']|lower == 'debian'
+

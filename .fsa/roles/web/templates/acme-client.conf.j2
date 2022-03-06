@@ -1,0 +1,38 @@
+authority letsencrypt {
+        api url "https://acme-v02.api.letsencrypt.org/directory"
+        account key "/etc/acme/letsencrypt-privkey.pem"
+}
+
+authority letsencrypt-staging {
+        api url "https://acme-v02.api.letsencrypt.org/directory"
+        account key "/etc/acme/letsencrypt-staging-privkey.pem"
+}
+
+domain {{ base.name }} {
+        domain key "/etc/ssl/private/{{ base.name }}.key"
+        domain certificate "/etc/ssl/{{ base.name }}.crt"
+        domain full chain certificate "/etc/ssl/{{ base.name }}.fullchain.pem"
+        sign with letsencrypt
+}
+{% if web.sites is defined %}
+{% for site in web.sites %}
+{% if site != base.name %}
+{% if site.tls is defined %}
+domain {{ site.name }} {
+{% if site.alts is defined %}
+        alternative names { {% for name in site.alts %}{{ name }} {% endfor %} }
+{% endif %}
+        domain key "/etc/ssl/private/{{ site.name }}.key"
+        domain certificate "/etc/ssl/{{ site.name }}.crt"
+        domain full chain certificate "/etc/ssl/{{ site.name }}.fullchain.pem"
+{% if site.tls == 'dev' %}
+        sign with letsencrypt-staging
+{% elif site.tls == 'prod' %}
+        sign with letsencrypt
+{% endif %}
+}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+

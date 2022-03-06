@@ -1,0 +1,5 @@
+{% if mail.whitelist is defined %}
+{% for cidr in mail.whitelist %}
+{{ cidr }}
+{% endfor %}
+{% endif %}
