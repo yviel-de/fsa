@@ -74,7 +74,7 @@ while [ $# -gt 0 ]; do
             finderonly=true
             shift
             ;;
-        -h|--help)
+        -h|--help|-v|--version)
             helponly=true
             shift
             ;;
@@ -92,6 +92,7 @@ if [ "$helponly" == "true" ]; then
 -u [--updates]: perform only updates
 -f [--finder]: run the fact-finder
 -h [--help]: display this information
+-v [--version]: see above
 genpass: generate passwords and hashes
 EOF
     exit 0
@@ -112,12 +113,10 @@ if ! [ -z "$args" ]; then
 fi
 
 # exec
-echo "##############"
 echo "# FSA v0.1.0 #"
 if [ -L /usr/local/bin/fsa ]; then
     echo "# $(readlink /usr/local/bin/fsa) #"
 fi
-echo "##############"
 ANSIBLE_CONFIG=.fsa/ansible.cfg $ansiblecmd
 # clean up
 rm -rf .fsa/host_vars
