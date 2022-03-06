@@ -3,7 +3,7 @@ An extensive server configuration and administration system built with [ansible]
 
 In the age of Big Tech, self-hosting is as important as ever, and FSA makes it easy. No more following random blogposts, wandering around filesystems doing things you already forgot. Declare your configuration in a simple and easy tree format, press the button and watch it happen.
 
-FSA aims to be an easy system for beginners to use, and a simple and reliable base for professionals to tailor to their needs.
+FSA aims to be an [easy system](EXAMPLES.md) for beginners to use, and a [simple and reliable base](CHANGELOG.md#contribute) for professionals to tailor to their needs.
 
 [Bug reports and feature requests](https://github.com/yviel-de/fsa/issues) welcome!
 
@@ -20,13 +20,13 @@ You are viewing the documentation for `v0.1.0` - use the branch list to switch.
     - [Target Prerequisites](#target-prerequisites)
     - [Inventory](#inventory)
     - [Required Config](#required-config)
-        - [base](#base)
-        - [net](#net)
+        - [base](#required-base)
+        - [net](#required-net)
  - [Apply Target Configuration](#apply-target-configuration)
     - [List of CLI Options](#list-of-fsa-command-line-options)
     - [Examples](#examples)
     - [Known Gotchas](#known-gotchas)
- - Further Documentation
+ - [Further Instructions](#further-instructions)
     - [Examples](EXAMPLES.md)
     - [Reference](REFERENCE.md)
     - [Changelog](CHANGELOG.md)
@@ -202,17 +202,19 @@ Run only updates on all hosts:
 
 Quality of Life issues like these will be addressed in future versions.
 
-## Further Documentation
+## Further Instructions
 
-Populate your config files, press the button and watch it happen!
+Everything from this point forward is up to you.
 
-Use the [Examples](EXAMPLES.md) for simple, practical examples and inspiration
+Add your hosts, define their configuration, press the button and watch it happen :)
 
-Check out the [Reference](REFERENCE.md) to set up infrastructure to your own liking
+Use the [Examples](EXAMPLES.md) for simple, practical examples and inspiration.
 
-View the [Changelog](CHANGELOG.md) for release and version information
+Check out the [Reference](REFERENCE.md) to customize things to your own liking.
 
-Refer to the [HowTos](HOWTOS.md) for any issue you might encounter
+View the [Changelog](CHANGELOG.md) for release and version information.
+
+Refer to the [HowTos](HOWTOS.md) for any issue you might encounter.
 
 As FSA is in active development, you should [report any bug or missing feature](https://github.com/yviel-de/fsa/issues), including in this documentation.
 
