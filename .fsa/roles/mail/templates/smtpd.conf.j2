@@ -83,6 +83,6 @@ match from local for any action "outgoing"
 match from src <whitelist> for any action "outgoing"
 {% endif %}
 {% if mail.listen | selectattr('auth', 'true') | length > 0 %}
-match auth from domain <domains> for any action "outgoing"
+match auth from any for any action "outgoing"
 {% endif %}
 
