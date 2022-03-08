@@ -1,7 +1,7 @@
 ﻿# yviel's Full Server Automation
 An extensive server configuration and administration system built with [ansible](https://docs.ansible.com).
 
-In the age of Big Tech, self-hosting is as important as ever, and FSA makes it easy. No more following random blogposts, wandering around filesystems doing things you already forgot. Declare your configuration in a simple and easy tree format, press the button and watch it happen.
+In the age of Big Tech, self-hosting is as important as ever, and FSA makes it easy. No more following random blogposts, wandering around filesystems doing things you already forgot. Declare your configuration in a self-explanatory tree format, press the button and watch it happen.
 
 FSA aims to be an [easy system](EXAMPLES.md) for beginners to use, and a [simple and reliable base](CHANGELOG.md#contribute) for professionals to tailor to their needs.
 
@@ -35,6 +35,7 @@ You are viewing the documentation for `v0.1.0` - use the branch list to switch.
 ## Features
  * Full network automation, DHCP, DNS, VPN, Routing, Firewalling
  * Full web automation, Webserver + PHP, Relay/LB
+ * Full mail automation, DKIM, spam filtering
  * Full automation of select applications, WebDAV
  * Scales to hundreds if not thousands of systems
 
@@ -143,7 +144,7 @@ net:
 ```
 Use the fact-finder with `fsa -f -l myhostname` to determine the interface you're looking for. (see "Apply target Configuration" below)
 
-A server almost always has a static IP, set it up by specifying address and netmask.
+Most of the time a server will have a static IP, set it up by specifying address and netmask.
 ```
     - name: eth0
       addr: 192.168.0.123
