@@ -1,0 +1,62 @@
+# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+
+server "{{ item.name }}" {
+{% if item.alts is defined %}
+{% for alt in item.alts %}
+    alias {{ alt }}
+{% endfor %}
+{% endif %}
+{% if item.tls is defined %}
+    listen on {{ item.listen | default('all') }} port 443
+{% else %}
+    listen on {{ item.listen | default('all') }} port 80
+    location "/.well-known/acme-challenge/*" {
+        root "/acme"
+        request strip 2
+    }
+{% endif %}
+{% if item.php | default(false) %}
+    location "/*.php" {
+        fastcgi socket "/run/php-fpm.sock"
+    }
+{% endif %}
+{% if item.index is defined %}
+    directory index "{{ index }}"
+{% elif item.php | default(false) %}
+    directory index "index.php"
+{% endif %}
+{% if httpd.auth is defined and item.auth | default(false) %}
+    authenticate with "/.auth"
+{% endif %}
+{# I think this will be the bigass switch for all the apps \#}
+{% if item.root is defined %}
+{# special case for webdav \#}
+{% if apps.webdav.site == item.name %}
+    root "{{ item.root }}/baikal"
+{% else %}
+    root "{{ item.root }}"
+{% endif %}
+{% endif %}
+{% if apps.dav is defined and apps.dav.site == item.name %}
+    # set max upload size to 513M (in bytes)
+    connection max request body 537919488
+    location "/admin/" {
+        authenticate with "{{ item.root }}/.auth"
+        directory index "index.php"
+    }
+    root "{{ item.root }}/html"
+    location "{{ item.root }}/html/admin/" {
+        directory index "index.php"
+        authenticate with "{{ item.root }}/.auth"
+    }
+    location "{{ item.root }}/html/admin/install/" {
+        directory index "index.php"
+        authenticate with "{{ item.root }}/.auth"
+    }
+{% endif %}
+    log style forwarded
+    log access "{{ item.name }}_access.log"
+    log error "{{ item.name }}_error.log"
+
+    tcp { nodelay }
+}

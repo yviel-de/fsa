@@ -1,0 +1,52 @@
+---
+- name: "obsd : dns : adblock : activate unbound control"
+  ansible.builtin.command: unbound-control-setup
+  changed_when: false
+
+- name: "obsd : dns : adblock : fetch filter script"
+  ansible.builtin.get_url:
+    url: https://geoghegan.ca/pub/unbound-adblock/0.5/unbound-adblock.sh
+    dest: /usr/local/bin/unbound-adblock
+    group: bin
+    mode: 755
+  register: adblock_changed
+  notify:
+    - unbound_restart
+
+- name: "obsd : dns : adblock : create whitelist file"
+  ansible.builtin.template:
+    src: adblock_whitelist.j2
+    dest: /var/unbound/db/adblock_whitelist
+    mode: 0640
+  when: net.dns.filter.whitelist is defined
+  register: adblock_whitelist_changed
+  notify:
+    - unbound_adblock
+    - unbound_restart
+
+- name: "obsd : dns : adblock : create adblock user"
+  ansible.builtin.user:
+    name: _adblock
+    shell: nologin
+    home: /var/empty
+    create_home: false
+
+- name: "obsd : dns : adblock : tune performance"
+  community.general.openbsd_pkg:
+    name: ripgrep
+    state: present
+
+# gotta ansible it out some other day. use the filter script as a check for changed
+- name: "obsd : dns : adblock : create binaries" # noqa no-handler
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - install -m 644 -o _adblock -g wheel /dev/null /var/unbound/db/adblock.rpz
+    - install -d -o root -g wheel -m 755 /var/log/unbound-adblock
+    - install -o _adblock -g wheel -m 640 /dev/null /var/log/unbound-adblock/unbound-adblock.log
+    - install -o _adblock -g wheel -m 640 /dev/null /var/log/unbound-adblock/unbound-adblock.log.0.gz
+  when: adblock_changed.changed
+
+- name: "obsd : dns : adblock : create first ruleset" # noqa no-handler
+  ansible.builtin.command: "{{ 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist'\
+    \ if net.dns.filter.whitelist is defined else 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd' }}"
+  when: adblock_changed.changed or adblock_whitelist_changed.changed

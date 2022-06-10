@@ -1,0 +1,10 @@
+---
+- name: if template is set
+  ansible.builtin.fail:
+    msg: Cannot run `install` and `template` simultaneously
+  when: item.install is defined and item.template is defined
+  loop: "{{ virt.vms }}"
+
+- name: "install : openbsd"
+  include_tasks: install_openbsd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

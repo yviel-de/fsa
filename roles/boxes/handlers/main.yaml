@@ -1,0 +1,9 @@
+---
+- name: dovecot_syntax
+  ansible.builtin.command: doveconf
+
+- name: dovecot_restart
+  ansible.builtin.service:
+    name: dovecot
+    state: restarted
+    enabled: true

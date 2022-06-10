@@ -1,0 +1,6 @@
+---
+dependencies:
+  - role: net
+  - role: dhcp
+  - role: dns
+  - role: fw

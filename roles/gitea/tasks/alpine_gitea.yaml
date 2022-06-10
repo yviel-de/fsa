@@ -1,0 +1,26 @@
+---
+- name: "gitea : alpine : enable community repo"
+  ansible.builtin.shell: set -o pipefail; if ! cat /etc/apk/repositories | grep -vE '^\#|^$' | grep -q community; then line=$(cat
+    /etc/apk/repositories | grep -vE '^\#|^$' | head -1); echo $line | sed 's/main/community/g' >> /etc/apk/repositories
+    && echo changed; fi
+  register: community_repo
+  changed_when: community_repo.stdout == "changed"
+
+- name: "gitea : alpine : install the package"
+  community.general.apk:
+    name:
+      - gitea
+    state: present
+    update_cache: true
+
+- name: "gitea : alpine : add settings"
+  community.general.ini_file:
+    path: /etc/gitea/app.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: 0600
+  loop: "{{ apps.gitea.config }}"
+  when: apps.gitea.config is defined
+  notify:
+    - gitea_restart

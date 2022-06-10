@@ -1,0 +1,8 @@
+---
+- name: "obsd : set up networking"
+  include_tasks: openbsd_net.yaml
+  when: net is defined and ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : set up networking"
+  include_tasks: alpine_net.yaml
+  when: net is defined and ansible_facts['os_family']|lower == 'alpine'

@@ -1,0 +1,4 @@
+---
+- name: "openbsd : run dkim"
+  include_tasks: openbsd_dkim.yaml
+  when: (mail is defined and mail.listen|selectattr('dkim', 'true')|length > 0) and ansible_facts['os_family']|lower == 'openbsd'

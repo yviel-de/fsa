@@ -1,0 +1,36 @@
+auto lo
+iface lo inet loopback
+
+{% for iface in net.ifaces %}
+{% if virt is defined and virt.bridge == iface.name %}
+{% set name = 'br0' %}
+{% else %}
+{% set name = iface.name %}
+{% endif %}
+auto {{ name }}
+iface {{ name }} inet
+{%- if iface.addr is not defined or iface.netmask is not defined %}
+ dhcp
+{% else %}
+ static
+    address {{ iface.addr }}
+    netmask {{ iface.netmask }}
+{% endif %}
+{% if net.routes is defined %}
+{% set fullnet = (iface.addr + '/' + iface.netmask) %}
+{% set cidrnet = fullnet | ansible.utils.ipaddr('network/prefix') %}
+{% for route in net.routes %}
+{% if route.split(' ')[0] == 'default' %}
+{% if cidrnet | ansible.utils.network_in_network( route.split(' ')[1] ) %}
+    gateway {{ route.split(' ')[1] }}
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{% if name == 'br0' %}
+    bridge_ports {{ iface.name }}
+    bridge_stp 0
+{% endif %}
+    hostname {{ ansible_hostname }}
+{% endfor %}
+

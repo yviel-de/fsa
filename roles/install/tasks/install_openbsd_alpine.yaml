@@ -1,0 +1,58 @@
+---
+# for alpine, we're baking an autoinstall shellscript into the ISO
+# and executing it manually through vmctl console
+- name: "install : openbsd : alpine : ensure blank slate"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/home/isos/alpine_staging_files_{{ randomid }}"
+    - "/home/isos/alpine-fsa-{{ vm.name }}-autoinstall.iso"
+
+- name: "install : openbsd : alpine : stage files"
+  ansible.builtin.command:
+    cmd: xorriso -osirrox on -indev /home/isos/alpine-fsa-latest.iso -extract / /home/isos/alpine_staging_files_{{ randomid }}
+  register: unpack
+  changed_when: not unpack.rc == 0
+
+- name: "install : openbsd : alpine : template autoinstall script"
+  ansible.builtin.template:
+    src: alpseed.sh.j2
+    dest: /home/isos/alpine_staging_files_{{ randomid }}/alpseed.sh
+    mode: 0755
+
+- name: "install : openbsd : alpine : repackage iso"
+  ansible.builtin.command:
+    cmd: xorriso -as mkisofs -o /home/isos/alpine-fsa-{{ vm.name }}-autoinstall.iso -isohybrid-mbr /home/isos/alpine_staging_files_{{
+      randomid }}/boot/syslinux/isohdpfx.bin -c boot/syslinux/boot.cat -b boot/syslinux/isolinux.bin -no-emul-boot -boot-load-size
+      4 -boot-info-table /home/isos/alpine_staging_files_{{ randomid }}
+  register: repack
+  changed_when: repack.rc == 0
+  failed_when: not repack.rc == 0
+
+- name: "install : openbsd : alpine : clean up"
+  ansible.builtin.set_fact:
+    virt_garbagelist: "{{ virt_garbagelist + [ item ] }}"
+  loop:
+    - /home/isos/alpine_staging_files_{{ randomid }}
+
+- name: "install : openbsd : alpine : reload vmd"
+  ansible.builtin.meta: flush_handlers
+
+# if the vm was already defined, it won't autostart on vmd reload
+- name: "install : openbsd : openbsd : start"
+  ansible.builtin.command: vmctl start {{ vm.name }}
+  changed_when: false
+  failed_when: false
+
+- name: "install : openbsd : alpine : (re)start VM & wait for it to boot"
+  ansible.builtin.shell: vmctl stop {{ vm.name }}; sleep 30; vmctl start {{ vm.name }}; sleep 30
+  changed_when: false
+  failed_when: false
+
+# looks funny, i know :) i could ever only pipe single characters to `vmctl console`, or `cu` for that matter
+# unfortunately you need some special utility not available via pkg to create apkovl and auto-exec it
+# so this is how we're doing it for now. i hope to be able to work with `expect` in the future
+- name: "install : openbsd : alpine : exec install script" # noqa risky-shell-pipe
+  ansible.builtin.shell: for i in r o o t '' / m e d i a / c d r o m / a l p s e e d . s h ''; do echo $i | vmctl console {{ vm.name }}; sleep 0.2; done
+  changed_when: false

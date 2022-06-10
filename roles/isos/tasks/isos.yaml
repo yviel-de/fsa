@@ -1,0 +1,31 @@
+---
+- name: "isos : generate random string"
+  ansible.builtin.set_fact:
+    randomid: "{{ lookup('community.general.random_string', length=16, special=false) }}"
+
+- name: "isos : create home"
+  ansible.builtin.file:
+    path: /home/isos
+    state: directory
+    mode: 0750
+
+# loop here, it's easier in the long run
+- name: "isos : openbsd"
+  include_tasks: isos_openbsd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+  loop:
+    - openbsd
+    - alpine
+    - debian
+  loop_control:
+    loop_var: os_iso
+
+- name: "isos : linux"
+  include_tasks: isos_linux.yaml
+  when: ansible_facts['os_family']|lower == 'alpine' or ansible_facts['os_family']|lower == 'debian'
+  loop:
+    - openbsd
+    - alpine
+    - debian
+  loop_control:
+    loop_var: os_iso

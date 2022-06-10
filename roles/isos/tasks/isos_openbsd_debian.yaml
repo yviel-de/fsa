@@ -1,0 +1,55 @@
+---
+- name: "isos : openbsd : debian : determine version" # noqa risky-shell-pipe
+  ansible.builtin.shell: ftp -o - https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/ | tr '=' '\n' | grep '"debian-[0-9][0-9]\.[0-9]\.[0-9]-amd64-netinst.iso"'
+    | cut -d '>' -f1 | tr -d '"' | head -1
+  register: deb_latest
+  changed_when: false
+
+- name: "isos : openbsd : debian : download time notif"
+  ansible.builtin.debug:
+    msg: Downloading the latest Debian ISO. This will take a while.
+
+- name: "isos : openbsd : debian : download latest iso"
+  ansible.builtin.get_url:
+    url: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/{{ deb_latest.stdout }}
+    dest: /home/isos/debian_staging_{{ randomid }}.iso
+    mode: 0640
+
+- name: "isos : openbsd : debian : stage files"
+  ansible.builtin.command:
+    cmd: xorriso -osirrox on -indev /home/isos/debian_staging_{{ randomid }}.iso -extract / /home/isos/debian_staging_files_{{
+      randomid }}
+    creates: /home/isos/debian_staging_files_{{ randomid }}
+
+- name: "isos : openbsd : debian : conf serial output"
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - "echo -n 'serial 0 115200\nconsole 0\npath\ninclude menu.cfg\ndefault vesamenu.c32\nprompt 0\ntimeout 0' > /home/isos/debian_staging_files_{{\
+      \ randomid }}/isolinux/isolinux.cfg"
+    - sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/adtxt.cfg
+    - sed -i'' 's/---/--- console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/adtxt.cfg
+    - sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/txt.cfg
+    - sed -i'' 's/---/--- console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/isolinux/txt.cfg
+    - sed -i'' 's/vga=788/vga=off console=ttyS0,115200n8/g' /home/isos/debian_staging_files_{{ randomid }}/boot/grub/grub.cfg
+  changed_when: false
+
+- name: "isos : openbsd : debian : copy bootloader"
+  ansible.builtin.copy:
+    src: isohdpfx.bin
+    dest: /home/isos/isohdpfx.bin
+    mode: 0640
+
+- name: "isos : openbsd : debian : repackage iso"
+  ansible.builtin.command:
+    cmd: xorriso -as mkisofs -o /home/isos/debian-fsa-latest.iso -isohybrid-mbr /home/isos/isohdpfx.bin -c isolinux/boot.cat
+      -b isolinux/isolinux.bin -no-emul-boot -boot-load-size 4 -boot-info-table /home/isos/debian_staging_files_{{ randomid
+      }}
+    creates: /home/isos/debian-fsa-latest.iso
+
+- name: "isos : openbsd : debian : clean up"
+  ansible.builtin.set_fact:
+    virt_garbagelist: "{{ virt_garbagelist + [ item ] }}"
+  loop:
+    - /home/isos/debian_staging_files_{{ randomid }}
+    - /home/isos/debian_staging_{{ randomid }}.iso
+    - /home/isos/isohdpfx.bin

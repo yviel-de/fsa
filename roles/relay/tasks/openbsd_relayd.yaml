@@ -1,0 +1,16 @@
+---
+- name: "obsd : relay : template the config"
+  ansible.builtin.template:
+    src: relayd.conf.j2
+    dest: /etc/relayd.conf
+    mode: 0600
+  notify:
+    - relayd_syntax
+    - relayd_restart
+
+- name: "obsd : relay : create logfile"
+  ansible.builtin.file:
+    path: /var/log/relayd.log
+    state: touch
+    mode: 0600
+  changed_when: false

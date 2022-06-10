@@ -1,0 +1,47 @@
+---
+- name: "openbsd : configure interfaces"
+  ansible.builtin.template:
+    src: hostname.if.j2
+    dest: /etc/hostname.{{ item.name }}
+    mode: 0600
+  loop: "{{ net.ifaces }}"
+  notify:
+    - netstart
+    - dhcpleased_restart
+  when: net.ifaces is defined
+
+- name: "openbsd : set up ip forwarding"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    create: true
+    mode: 0600
+    line: net.inet.ip.forwarding=1
+  when: net.routing is defined and net.routing
+  notify:
+    - sysctl_forwarding
+
+- name: "openbsd : set up routes"
+  ansible.builtin.command: route add -inet {{ item }}
+  when: net.routes is defined
+  loop: "{{ net.routes }}"
+  register: route
+  changed_when: route.rc == 0
+  failed_when: false
+
+- name: "openbsd : set up virt bridges"
+  ansible.builtin.template:
+    src: hostname.virt.j2
+    dest: /etc/hostname.{{ item }}
+    mode: 0600
+  register: net_virt_ifaces
+  loop:
+    - bridge0
+    - vether0
+    - vether1
+    - bridge1
+    - bridge2
+  when: virt is defined
+  notify: netstart_virt
+
+- name: "openbsd : apply network config"
+  ansible.builtin.meta: flush_handlers

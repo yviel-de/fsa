@@ -1,0 +1,53 @@
+{# vm.conf unfortunately doesn't do directory includes, and i have to dynamically add/remove vms for install and molecule \#}
+{# so everything that's not autoinstall or molecule is statically in here, and those 2 roles mess around with blockinfile :( \#}
+switch "public" {
+	interface bridge0
+}
+switch "private" {
+	interface bridge1
+}
+switch "staging" {
+    interface bridge2
+}
+
+{% if virt.vms is defined %}
+{% for vm in virt.vms %}
+{% if vm.install is defined %}
+include "/etc/vm.{{ vm.name }}_autoinstall.conf"
+{% else %}
+vm "{{ vm.name }}" {
+{% if not vm.autostart | default(true) %}
+    disable
+{% endif %}
+    memory {{ vm.mem }}
+    disk "/home/vms/{{ vm.name }}.img"
+{% if vm.iso is defined and vm.install is not defined %}
+{% if '/' in vm.iso %}
+    cdrom "{{ vm.iso }}"
+{% elif vm.iso == 'openbsd' %}
+    cdrom "/home/isos/openbsd-fsa-latest.iso"
+{% elif vm.iso == 'alpine' %}
+    cdrom "/home/isos/alpine-fsa-latest.iso"
+{% elif vm.iso == 'debian' %}
+    cdrom "/home/isos/debian-fsa-latest.iso"
+{% endif %}
+{% endif %}
+
+    interface tap{{ loop.index }} {
+{% if vm.private | default(false) %}
+        switch "private"
+{% else %}
+        switch "public"
+{% endif %}
+{% if vm.mac is defined %}
+        lladdr {{ vm.mac }}
+{% endif %}
+    }
+
+}
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{# unique string for vm autoinstall and molecule to use as an anchor \#}
+# c2567a7dda4f8c1a360f6f2389715c14

@@ -1,0 +1,15 @@
+---
+- name: dhcpd_restart
+  ansible.builtin.service:
+    name: dhcpd
+    state: restarted
+    enabled: true
+
+- name: vmd_syntax
+  ansible.builtin.command: vmd -n
+
+- name: vmd_reload
+  ansible.builtin.service:
+    name: vmd
+    state: reloaded
+    enabled: true

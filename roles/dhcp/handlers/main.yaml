@@ -1,0 +1,15 @@
+---
+- name: dhcpd_syntax
+  ansible.builtin.command: dhcpd -n
+
+- name: dhcpd_restart
+  ansible.builtin.service:
+    name: dhcpd
+    state: restarted
+    enabled: true
+
+- name: dhcpleased_restart
+  ansible.builtin.service:
+    name: dhcpleased
+    state: restarted
+    enabled: true

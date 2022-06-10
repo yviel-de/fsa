@@ -1,0 +1,5 @@
+---
+# should be last in file (and last role in book) so it's done very last so it's not lost in the noise
+- name: dkim_newkeys_echo
+  ansible.builtin.debug:
+    msg: "{{ dkim_pubs_out.stdout }}"

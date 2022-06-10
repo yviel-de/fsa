@@ -1,0 +1,12 @@
+{# br0 is public, br1 private, br2 staging/autoinst \#}
+{% if item == 'bridge0' %}
+add {{ virt.bridge }}
+{% elif item == 'bridge1' %}
+add vether0
+{% elif item == 'bridge2' %}
+add vether1
+{% elif item == 'vether0' %}
+inet 172.19.24.0 255.255.255.0
+{% elif item == 'vether1' %}
+inet 100.92.0.1 255.255.255.0
+{% endif %}

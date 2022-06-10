@@ -1,0 +1,10 @@
+---
+- name: install VMs
+  include_tasks: install.yaml
+  when: virt.vms is defined and virt.vms|selectattr('install', 'defined')|length > 0
+
+- name: clean up
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ virt_garbagelist }}"

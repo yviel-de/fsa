@@ -1,0 +1,15 @@
+---
+- name: redis_start
+  ansible.builtin.service:
+    name: redis
+    state: started
+    enabled: true
+
+- name: rspamd_syntax
+  ansible.builtin.command: rspamadm configtest
+
+- name: rspamd_restart
+  ansible.builtin.service:
+    name: rspamd
+    state: restarted
+    enabled: true

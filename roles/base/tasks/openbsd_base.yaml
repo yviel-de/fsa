@@ -1,0 +1,40 @@
+---
+- name: "obsd : set hostname"
+  ansible.builtin.lineinfile:
+    path: /etc/myname
+    regexp: ^
+    line: "{{ base.name }}"
+  when: base.hostname is defined
+
+- name: "obsd : also for current session"
+  ansible.builtin.command: hostname {{ base.name }}
+  when: base.hostname is defined
+  changed_when: false
+
+- name: "obsd : disable sound"
+  ansible.builtin.service:
+    name: sndiod
+    enabled: false
+    state: stopped
+  when: base.sound | default(false)
+
+# might not come back up by itself otherwise
+- name: "obsd : setup auto-fsck" # noqa no-tabs
+  ansible.builtin.lineinfile:
+    path: /etc/rc
+    line: "\tfsck -p -y \"$@\""
+    regexp: "\tfsck -p"
+
+- name: "obsd : template motd" # noqa risky-file-permissions
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd
+
+- name: "base : set up mailto"
+  ansible.builtin.lineinfile:
+    path: /etc/mail/aliases
+    regexp: ^root:*
+    line: "root: {{ base.mailto }}"
+  notify:
+    - newaliases
+  when: base.mailto is defined

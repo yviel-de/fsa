@@ -1,0 +1,31 @@
+---
+- name: "mysql : openbsd : install the package"
+  community.general.openbsd_pkg:
+    name:
+      - mariadb-server
+      - mariadb-client
+    state: present
+
+- name: "mysql : openbsd : run first setup"
+  ansible.builtin.command: /usr/local/bin/mysql_install_db
+  register: mysql_firstrun
+  changed_when: "'Run mysql_upgrade, not mysql_install_db' in mysql_firstrun.stderr_lines"
+  failed_when: false
+
+- name: "mysql : openbsd : add settings"
+  community.general.ini_file:
+    path: /etc/my.cnf
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: 0640
+  loop: "{{ apps.mysql.config }}"
+  when: apps.mysql.config is defined
+  notify:
+    - mariadb_restart
+
+- name: "mysql : openbsd : start & enable the service"
+  ansible.builtin.service:
+    name: mysqld
+    state: started
+    enabled: true

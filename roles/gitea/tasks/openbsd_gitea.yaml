@@ -1,0 +1,32 @@
+---
+- name: "gitea : openbsd : install the package"
+  community.general.openbsd_pkg:
+    name:
+      - gitea
+    state: present
+
+- name: "gitea : openbsd : create configdir"
+  ansible.builtin.file:
+    path: /var/gitea/custom/conf
+    state: directory
+    owner: _gitea
+    group: _gitea
+    mode: 0755
+
+- name: "gitea : openbsd : template defaults"
+  ansible.builtin.template:
+    src: gitea.ini.j2
+    dest: /var/gitea/custom/conf/app.ini
+  changed_when: false
+
+- name: "gitea : openbsd : add settings"
+  community.general.ini_file:
+    path: /var/gitea/custom/conf/app.ini
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: 0600
+  loop: "{{ apps.gitea.config }}"
+  when: apps.gitea.config is defined
+  notify:
+    - gitea_restart

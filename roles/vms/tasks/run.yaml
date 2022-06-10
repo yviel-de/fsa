@@ -1,0 +1,5 @@
+---
+# openbsd doesn't need explicit running, happens on reload from config change in roles/virt
+- name: "run : linux libvirt"
+  include_tasks: run_linux.yaml
+  when: ansible_facts['os_family']|lower == 'debian' or ansible_facts['os_family']|lower == 'alpine'

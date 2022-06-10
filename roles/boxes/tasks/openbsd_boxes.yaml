@@ -1,0 +1,106 @@
+---
+- name: "obsd : boxes : install dovecot"
+  community.general.openbsd_pkg:
+    name:
+      - dovecot
+    state: present
+
+- name: "obsd : boxes : create mail user"
+  ansible.builtin.user:
+    name: vmail
+    password: "*************"
+
+- name: "obsd : boxes : set up mailboxes"
+  ansible.builtin.template:
+    src: dovepass.j2
+    dest: /etc/mail/dovepass
+    mode: 0600
+    owner: _dovecot
+  notify:
+    - dovecot_syntax
+    - dovecot_restart
+
+- name: "obsd : boxes : set up limits"
+  ansible.builtin.blockinfile:
+    path: /etc/login.conf
+    block: |
+      dovecot:\
+          :openfiles-cur=1024:\
+          :openfiles-max=2048:\
+          :tc=daemon:
+    marker: "# dovecot limits {mark}"
+
+- name: "obsd : boxes : check for dh params"
+  ansible.builtin.stat:
+    path: /etc/dovecot/dh.pem
+  register: dovecot_dhparams
+
+- name: "obsd : boxes : dh params time notif"
+  ansible.builtin.debug:
+    msg: About to generate DH crypto parameters. This will take quite a while.
+  when: not dovecot_dhparams.stat.exists
+
+# when getting rid of shell, print warning that this'll take a while
+- name: "obsd : boxes : create dh params"
+  ansible.builtin.shell: if [ ! -f /etc/dovecot/dh.pem ]; then openssl dhparam -out /etc/dovecot/dh.pem 4096; >/dev/null 2>&1
+    && echo changed; fi
+  register: dhparams
+  changed_when: dhparams.stdout == "changed"
+  failed_when: false
+  when: not dovecot_dhparams.stat.exists
+
+- name: "obsd : boxes : configure dovecot"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/dovecot/{{ item }}
+    mode: 0640
+  loop:
+    - conf.d/10-auth.conf
+    - conf.d/10-ssl.conf
+    - conf.d/10-master.conf
+    - conf.d/10-mail.conf
+    - conf.d/10-director.conf
+    - conf.d/20-imap.conf
+    - conf.d/90-plugin.conf
+    - dovecot.conf
+  notify:
+    - dovecot_syntax
+    - dovecot_restart
+
+- name: "obsd : boxes : configure junk filtering"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: "{{ item.mode }}"
+  loop:
+    - src: report-ham.sieve.j2
+      dst: /usr/local/lib/dovecot/sieve/report-ham.sieve
+      mode: "0640"
+    - src: report-spam.sieve.j2
+      dst: /usr/local/lib/dovecot/sieve/report-spam.sieve
+      mode: "0640"
+    - src: sa-learn-ham.sh.j2
+      dst: /usr/local/lib/dovecot/sieve/sa-learn-ham.sh
+      mode: "755"
+    - src: sa-learn-spam.sh.j2
+      dst: /usr/local/lib/dovecot/sieve/sa-learn-spam.sh
+      mode: "755"
+  notify:
+    - dovecot_syntax
+    - dovecot_restart
+    - rspamd_syntax
+    - rspamd_restart
+  when: mail.listen | selectattr('filter', 'eq', 'spam') | length > 0
+
+- name: "obsd : boxes : compile junk rules"
+  ansible.builtin.command: sievec "/usr/local/lib/dovecot/sieve/{{ item }}"
+  changed_when: false
+  loop:
+    - report-ham.sieve
+    - report-spam.sieve
+  notify:
+    - dovecot_syntax
+    - dovecot_restart
+    - rspamd_syntax
+    - rspamd_restart
+  when: mail.listen | selectattr('filter', 'eq', 'spam') | length > 0

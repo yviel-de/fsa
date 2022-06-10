@@ -1,0 +1,34 @@
+---
+- name: "sshd : deny root-ssh"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: PermitRootLogin no
+    regexp: ^PermitRootLogin
+  when: base.users is defined
+  notify:
+    - sshd_syntax
+    - sshd_restart
+
+- name: "sshd : deny passwd ssh"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: PasswordAuthentication yes
+    regexp: ^PasswordAuthentication
+  notify:
+    - sshd_syntax
+    - sshd_restart
+
+- name: "sshd : proper ssh algos"
+  ansible.builtin.blockinfile:
+    path: /etc/ssh/sshd_config
+    insertafter: EOF
+    block: |
+      KexAlgorithms           curve25519-sha256@libssh.org
+      HostKeyAlgorithms       ssh-ed25519
+      Ciphers                 chacha20-poly1305@openssh.com
+      MACs                    hmac-sha2-512-etm@openssh.com
+    marker: "# strong algos for bot defence {mark}"
+  notify:
+    - sshd_syntax
+    - sshd_restart
+  when: base.sshd.tune | default(true)

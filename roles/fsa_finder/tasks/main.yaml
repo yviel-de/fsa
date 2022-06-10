@@ -1,0 +1,15 @@
+---
+# shell for now, that's how it is
+- name: "find : obsd : find ethernets" # noqa yaml
+  # ansible-lint "auto-fixes" this line in a way that it fails subsequent length checks. therefore noqa
+  ansible.builtin.shell: "set -o pipefail; echo; for iface in $(ifconfig | grep -E '^[a-z]+[0-9]:' | cut -d ':' -f1 | grep\
+    \ -vE 'pflog[0-9]|enc[0-9]|lo[0-9]|wg[0-9]|tap[0-9]+|bridge[0-9]|vether[0-9]' | tr '\n' ' '); do mac=$(ifconfig $iface\
+    \ | grep lladdr | cut -d ' ' -f2); echo $iface $mac; done"
+  register: ethernets
+  when: ansible_facts['os_family']|lower == 'openbsd'
+  changed_when: false
+
+- name: "find : obsd : echo facts"
+  ansible.builtin.debug:
+    msg: "Available ethernets on {{ ansible_fqdn }}: {{ ethernets.stdout }}"
+  when: ansible_facts['os_family']|lower == 'openbsd'

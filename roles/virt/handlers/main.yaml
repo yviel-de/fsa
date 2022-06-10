@@ -1,0 +1,35 @@
+---
+- name: vmd_syntax
+  ansible.builtin.command: vmd -n
+
+- name: vmd_running
+  ansible.builtin.service:
+    name: vmd
+    state: started
+    enabled: true
+
+- name: vmd_reload
+  ansible.builtin.service:
+    name: vmd
+    state: reloaded
+    enabled: true
+
+- name: local_start
+  ansible.builtin.service:
+    name: local
+    state: started
+    enabled: true
+
+- name: kvm_reload
+  ansible.builtin.service:
+    name: libvirtd
+    state: restarted
+    enabled: true
+
+- name: kvm_netstart
+  ansible.builtin.shell: virsh net-start {{ item }}; sleep 1; virsh net-autostart {{ item }}; sleep 1
+  loop:
+    - public
+    - private
+  failed_when: false
+  changed_when: false

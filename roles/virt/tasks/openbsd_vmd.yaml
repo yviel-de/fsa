@@ -1,0 +1,21 @@
+---
+- name: "openbsd : vmd : architecture check"
+  ansible.builtin.fail:
+    msg: VMD only on x64... sorry
+  when: ansible_facts.machine != 'amd64'
+
+- name: "openbsd : vmd : template the config"
+  ansible.builtin.template:
+    src: vm.conf.j2
+    dest: /etc/vm.conf
+    mode: 0600
+  notify:
+    - vmd_syntax
+    - vmd_running
+    - vmd_reload
+
+- name: "openbsd : vmd : create home for disks"
+  ansible.builtin.file:
+    path: /home/vms
+    state: directory
+    mode: 0700

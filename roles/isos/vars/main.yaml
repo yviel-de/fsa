@@ -1,0 +1,6 @@
+---
+# need to catch the naming difference
+arch_map:
+  x86_64: amd64
+arch: "{{ arch_map.get(ansible_facts.machine, ansible_facts.machine) }}"
+virt_garbagelist: []

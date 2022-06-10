@@ -1,6 +1,6 @@
 ---
 name: Bug report
-about: Something that should work, doesn't
+about: Something that should work, but doesn't
 title: ''
 labels: 'bug'
 assignees: ''
@@ -35,33 +35,28 @@ A clear and concise description of what you expected to happen.
 #### What happened instead
 A clear and concise description of what did happen instead.
 
-This is where you should include your the error output.
+This is where you should include the error output.
 
 ----
 #### What is your environment
 Paste the output of the following commands:
  * On the controlling machine:
-    1. `which fsa && fsa --version`
+    1. `pwd; ls -la; alias | grep fsa; ./fsa --version`
 ```
 my result here
 ```
 
-    2. `which ansible && ansible --version`
+    2. `echo $SHELL`
 ```
 my result here
 ```
 
-    3. `echo $SHELL`
+    3. `uname -a`
 ```
 my result here
 ```
 
-    4. `uname -a`
-```
-my result here
-```
-
-    5. `cat /etc/issue`
+    4. `cat /etc/issue`
 ```
 my result here
 ```
@@ -92,3 +87,4 @@ my result here
 #### Any additional context about the issue
  * How big is the impact?
  * Anything specific you wish to add?
+

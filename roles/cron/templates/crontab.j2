@@ -1,0 +1,49 @@
+{% if base.cron is defined %}
+{% for line in base.cron %}
+{{ line }}
+{% endfor %}
+{% endif %}
+{% if base.autoupdate | default(false) %}
+# update
+~ 0~1 * * * root /usr/sbin/pkg_add -u 2>&1 | grep -v quirks ; /usr/sbin/syspatch
+{% endif %}
+{% if net is defined %}
+{% if net.routes is defined %}
+{% for route in net.routes %}
+# routes
+@reboot root route add {{ route }} >/dev/null 2>&1
+{% endfor %}
+{% endif %}
+{% if net.vpn.persist | default(false) %}
+{% if net.vpn.peer is defined %}
+# vpn
+* * * * * root PATH=$PATH:/sbin; if ! ping -c4 {{ net.vpn.peer.addr }} >/dev/null 2>&1; then /bin/sh /etc/netstart wg0 >/dev/null 2>&1; fi
+{% elif net.vpn.peers is defined %}
+{% for peer in net.vpn.peers %}
+* * * * * root PATH=$path:/sbin; if ! ping -c4 {{ peer.addr }} >/dev/null 2>&1; then /bin/sh /etc/netstart wg0 >/dev/null 2>&1; fi
+{% endfor %}
+{% endif %}
+{% endif %}
+{% if net.dns is defined and net.dns.filter | default(true) %}
+# dns-adblock
+{% if net.dns.filter.whitelist is defined %}
+~ 0~1 * * *	_adblock unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist
+{% else %}
+~ 0~1 * * *	_adblock unbound-adblock -O openbsd
+{% endif %}
+{% endif %}
+{% if net.public | default(false) %}
+# pf-badhost
+~ 0~1 * * *	_pfbadhost pf-badhost -O openbsd
+{% endif %}
+{% endif %}
+{% if (mail.listen is defined and mail.listen|selectattr('tls', 'defined')|length > 0) or (web.sites is defined and web.sites|selectattr('tls', 'defined')|length > 0) or (web.relay.frontends is defined and web.relay.frontends |selectattr('tls', 'defined')|length > 0) %}
+# acme
+@weekly root for i in $(cat /etc/acme-client.conf | grep ^domain | cut -d ' ' -f2); do /usr/sbin/acme-client -v $i; cp /etc/ssl/$i.fullchain.pem /etc/ssl/$i.crt; done
+@weekly root for i in httpd smtpd dovecot relayd; do if rcctl check $i >/dev/null; then rcctl restart $i >/dev/null; done
+{% endif %}
+{% if virt.vms is defined %}
+# cleanup for openbsd autoinstall
+@daily root find /var/www/vmd_autoinstall/ -type f -cmin +1440 -delete
+@daily root for i in $(find /etc/ -type f -name vm.*_autoinstall.conf); do name=$(echo $i | cut -d '.' -f2 | cut -d '_' -f -1); if ! vmctl show | grep -q $name; then rm -f $i; fi; done
+{% endif %}

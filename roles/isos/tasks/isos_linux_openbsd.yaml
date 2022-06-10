@@ -1,0 +1,32 @@
+---
+- name: "isos : linux : openbsd : grab version" # noqa command-instead-of-module
+  ansible.builtin.shell: set -o pipefail; curl http://ftp.openbsd.org/pub/OpenBSD/ | grep '"[0-9]\.[0-9]/"' | sed -e 's/\/<\/a>.*//'
+    -e 's/.*>//' | sort | tail -n1
+  register: obsd_latest_test
+  changed_when: false
+
+# TODO: temporary hack. this whole version handling really needs an overhaul
+- name: "TEMP: 7.1 not out yet"
+  ansible.builtin.set_fact:
+    obsd_latest:
+      stdout: "{{ '7.0' if obsd_latest_test.stdout == '7.1' else obsd_latest_test.stdout }}"
+
+# TODO: temporary hack, use a var map or something
+- name: "HACK: only imgfile, no iso, for aarch bsd"
+  ansible.builtin.set_fact:
+    suffix: "{{ 'img' if arch == 'aarch64' else 'iso' }}"
+
+- name: "HACK: stupid double naming"
+  ansible.builtin.set_fact:
+    arch: "{{ 'arm64' if arch == 'aarch64' else arch }}"
+
+- name: "isos : linux : openbsd : download time notif"
+  ansible.builtin.debug:
+    msg: Downloading the latest OpenBSD ISO. This will take a while.
+
+- name: "isos : linux : openbsd : grab latest iso"
+  ansible.builtin.get_url:
+    url: https://cdn.openbsd.org/pub/OpenBSD/{{ obsd_latest.stdout }}/{{ arch }}/install{{ obsd_latest.stdout | replace('.',
+      '') }}.{{ suffix }}
+    dest: /home/isos/openbsd-fsa-latest.iso
+    mode: 0640

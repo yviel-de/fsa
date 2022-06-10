@@ -1,0 +1,9 @@
+---
+- name: relayd_syntax
+  ansible.builtin.command: relayd -n
+
+- name: relayd_restart
+  ansible.builtin.service:
+    name: relayd
+    state: restarted
+    enabled: true

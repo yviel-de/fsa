@@ -1,0 +1,62 @@
+###
+### THIS IS A DRIVER PLAY & ROLE FOR AUTOMATED CODE TESTS WITH MOLECULE
+### NOT SOMETHING TO RUN MANUALLY, AND IGNORED BY FSA AUTO-DETECTION
+###
+---
+# play 1, we compute some facts and create and inventory
+# honestly check out the create.yaml, it's virtually the same thing
+# i couldn't dynamically determine whether the action was create or destroy, that's the only reason
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    # compute a unique test id from the role & scenario name
+    - shell: echo {{ molecule_file }} | rev | cut -d '/' -f 2,3 | rev | tr '/' '-' | md5sum | awk '{print $1}' | cut -c1-8
+      register: scenario
+    - set_fact:
+        # underscores cause ansible needs it
+        testid: "{{ scenario.stdout }}_fsa_molecule"
+
+    # make a clean slate for converge.yaml
+    - file:
+        path: /tmp/{{ scenario }}
+        state: absent
+
+    # build the inventory from the platforms definition
+    - add_host:
+        hostname: "{{ item.name }}"
+        groups: fsa_molecule_guests_{{ testid }}
+        instancename: "{{ item.name }}-{{ testid }}"
+        runon: "{{ item.host }}"
+        action: destroy
+      loop: "{{ molecule_yml.platforms }}"
+
+    - add_host:
+        hostname: "{{ item.host }}"
+        groups: fsa_molecule_hosts_{{ testid }}
+      loop: "{{ molecule_yml.platforms }}"
+
+# play 2, the role creates the guests in parallel anyway
+- hosts: "{{ 'fsa_molecule_guests_' ~ hostvars.localhost.testid }}"
+  gather_facts: false
+  pre_tasks:
+    # bring over the testid for convenience
+    - set_fact:
+        testid: hostvars.localhost.testid
+    # set up the conection
+    - include_role:
+        name: fsa_connect
+      vars:
+        target: "{{ runon }}"
+  # do the thing
+  roles:
+    - fsa_molecule
+
+# play 3, unset the config dict, this is required by molecule
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  tasks:
+    # unset the config (required)
+    - set_fact:
+        instance_conf: {}

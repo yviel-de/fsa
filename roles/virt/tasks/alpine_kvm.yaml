@@ -1,0 +1,106 @@
+---
+- name: "alpine : libvirt : install packages"
+  community.general.apk:
+    name: libvirt-daemon,qemu-img,qemu-system-{{ arch }},qemu-modules,openrc,ovmf
+
+- name: "alpine : libvirt : enable uefi"
+  ansible.builtin.lineinfile:
+    path: /etc/libvirt/qemu.conf
+    line: nvram = [ "/usr/share/OVMF/QEMU_EFI.fd:/usr/share/OVMF/QEMU_VARS.fd" ]
+    regex: ^nvram
+    state: present
+  notify:
+    - kvm_reload
+
+- name: "alpine : libvirt : make sure is running"
+  ansible.builtin.service:
+    name: libvirtd
+    state: started
+    enabled: true
+
+- name: "alpine : libvirt : template net config"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: /etc/libvirt/qemu/{{ item.dest }}
+    mode: 0600
+  loop:
+    - { src: kvm.pubnet.xml.j2, dest: networks/public.xml }
+    - { src: kvm.privnet.xml.j2, dest: networks/private.xml }
+  changed_when: false # since qemu adds an ID to it
+
+- name: "alpine : libvirt : and activate it"
+  ansible.builtin.shell: set -o pipefail; if ! virsh net-list --all | awk '{print $1}' | grep -vE 'Name|^$|--------' | grep
+    -q ^{{ item }}; then virsh net-define /etc/libvirt/qemu/networks/{{ item }}.xml >/dev/null 2>&1; echo 'changed'; fi;
+  register: kvm_netdefine
+  loop:
+    - public
+    - private
+  notify:
+    - kvm_netstart
+  changed_when: kvm_netdefine.stdout == 'changed'
+  failed_when: false
+
+- name: "alpine : libvirt : and start it"
+  ansible.builtin.shell: set -o pipefail; if ! virsh net-list | awk '{print $1}' | grep -vE 'Name|^$|--------' | grep -q ^{{
+    item }}; then virsh net-start {{ item }} >/dev/null 2>&1; sleep 0.1; virsh net-autostart {{ item }} >/dev/null 2>&1; echo
+    'changed'; fi;
+  register: kvm_netstart
+  loop:
+    - public
+    - private
+  changed_when: kvm_netstart.stdout == 'changed'
+  failed_when: false
+
+- name: "alpine : libvirt : allow bridge"
+  ansible.builtin.lineinfile:
+    path: /etc/qemu/bridge.conf
+    line: allow br0
+    state: present
+  notify:
+    - kvm_reload
+
+- name: "alpine : libvirt : allow dhcp"
+  ansible.builtin.command: echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables
+  changed_when: false
+
+- name: "alpine : libvirt : forward broadcast"
+  ansible.posix.sysctl:
+    name: net.ipv4.conf.all.bc_forwarding
+    value: 1
+    sysctl_set: true
+    state: present
+
+- name: "alpine : libvirt : setup tables"
+  ansible.builtin.template:
+    src: alpine_dhcp_{{ item }}.j2
+    dest: /etc/local.d/alpine_dhcp_kvm.{{ item }}
+    mode: 0755
+  register: tables
+  notify:
+    - local_start
+  loop:
+    - start
+    - stop
+
+# TODO: replace with flush_handlers?
+- name: "alpine : libvirt : and exec them" # noqa: no-handler
+  ansible.builtin.command: sh /etc/local.d/alpine_dhcp_kvm.start
+  when: tables.changed
+
+- name: "alpine : libvirt : make sure is running"
+  ansible.builtin.service:
+    name: libvirtd
+    state: started
+    enabled: true
+
+- name: "alpine : libvirt : create home for disks"
+  ansible.builtin.file:
+    path: /home/vms
+    state: directory
+    mode: 0700
+
+- name: "alpine : libvirt : autostart directory"
+  ansible.builtin.file:
+    path: /etc/libvirt/qemu/autostart
+    state: directory
+    mode: 0700

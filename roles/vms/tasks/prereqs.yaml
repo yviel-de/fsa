@@ -1,0 +1,9 @@
+---
+# we only need to exec these once
+- name: "prereqs : openbsd"
+  include_tasks: prereqs_openbsd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "prereqs : alpine"
+  include_tasks: prereqs_alpine.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

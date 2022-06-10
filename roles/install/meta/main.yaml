@@ -1,0 +1,8 @@
+---
+dependencies:
+  - role: virt
+  - role: vms
+  - role: httpd
+  - role: dhcp
+  - role: isos
+  - role: cron

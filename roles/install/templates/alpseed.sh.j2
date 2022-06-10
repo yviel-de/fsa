@@ -1,0 +1,56 @@
+#!/bin/sh
+
+set -x
+
+setup-keymap {{ vm.install.layout }} {{ vm.install.layout }}
+setup-hostname -n {{ vm.name }}
+echo "auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+    hostname {{ vm.name }}
+" > /tmp/interface
+setup-interfaces -i < /tmp/interface
+/etc/init.d/networking restart
+
+setup-timezone -z {{ vm.install.time }}
+
+# choose fastest mirror
+echo f | setup-apkrepos -f
+
+# prohibit-password
+echo '' | setup-sshd -c openssh
+
+echo 'openntpd' | setup-ntp -c openntpd
+
+BOOT_SIZE=64
+ROOTFS=ext4
+if cat /proc/cpuinfo | grep -q Raspberry; then
+    call="setup-disk -k linux-rpi"
+else
+    call="setup-disk"
+fi
+# y for the "are-you-sure" raw disk
+echo y | $call -m sys /dev/vda
+
+sleep 1
+
+targetuser="root"
+targetdir="root/.ssh"
+{% if vm.install.key is defined %}
+pubkey="{{ lookup('file', vm.install.key) }}"
+mount /dev/vda3 /mnt/
+sleep 0.2
+mkdir /mnt/$targetdir
+echo "$pubkey" | tee -a /mnt/$targetdir/authorized_keys
+chown -R $targetuser: /mnt/$targetdir
+sleep 0.2
+umount /mnt/
+{% endif %}
+
+sleep 0.2
+
+# on vmd this actually shuts down the vm
+reboot
+

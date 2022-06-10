@@ -1,7 +1,0 @@
----
-- hosts: all
-  become_method: doas
-
-  roles:
-    - update
-

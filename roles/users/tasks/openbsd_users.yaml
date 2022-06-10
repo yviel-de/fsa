@@ -1,0 +1,45 @@
+---
+# TODO: add convenience packages
+#- name: "obsd : install base packages" # noqa yaml
+#  community.general.openbsd_pkg:
+#    name:
+#      - htop
+#      - vim--no_x11
+#    state: present
+
+- name: "base : set root password"
+  ansible.builtin.user:
+    name: root
+    password: "{{ base.rootpw }}"
+  when: base.rootpw is defined
+
+- name: "obsd : set up users"
+  ansible.builtin.user:
+    name: "{{ item.name }}"
+    password: "{{ '*************' if item.pass is not defined else item.pass }}"
+  when: base.users is defined
+  loop: "{{ base.users }}"
+
+# TODO: set up convenience rc files
+#- name: "base : template rc files" # noqa yaml
+#  template:
+#    src: "{{ item }}.j2"
+#    dest: "~/.{{ item }}"
+#  with_items:
+#    - vimrc
+#    - tmux.conf
+
+- name: "obsd : set up doas"
+  ansible.builtin.template:
+    src: doas.conf.j2
+    dest: /etc/doas.conf
+    mode: 0600
+
+# TODO: set up convenience aliases, maybe move to mail
+#- name: "obsd : set aliases" # noqa yaml
+#  blockinfile:
+#    path: /root/.profile
+#    block: |
+#      alias poweroff="shutdown -p now"
+#      alias testalias=somestring
+#    marker: "# useful aliases {mark}"

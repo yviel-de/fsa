@@ -1,0 +1,6 @@
+---
+- name: syslogd_restart
+  ansible.builtin.service:
+    name: syslogd
+    state: restarted
+    enabled: true

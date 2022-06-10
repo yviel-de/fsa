@@ -1,0 +1,8 @@
+---
+- name: "obsd : acme-client"
+  include_tasks: openbsd_acme.yaml
+  when: >
+    ( (mail.listen is defined and mail.listen|selectattr('tls', 'defined')|length > 0) or
+    (web.sites is defined and web.sites|selectattr('tls', 'defined')|length > 0) or
+    (web.relay.frontends is defined and web.relay.frontends|selectattr('tls', 'defined')|length > 0)
+    ) and ansible_facts['os_family']|lower == 'openbsd'

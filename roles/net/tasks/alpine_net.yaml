@@ -1,0 +1,50 @@
+---
+- name: "alpine : install bridge"
+  community.general.apk:
+    name: bridge
+    state: present
+    update_cache: true
+
+- name: "alpine : configure interfaces"
+  ansible.builtin.template:
+    src: alpine_interfaces.j2
+    dest: /etc/network/interfaces
+    mode: 0600
+  register: netchange
+
+# these used to be in virt, but there's issues with alpine network config bridge thingie, maybe this is why
+- name: "alpine : net : load kernel modules"
+  community.general.modprobe:
+    name: "{{ item }}"
+    state: present
+  loop:
+    - tun
+    - tap
+    - br_netfilter
+  when: virt is defined
+
+- name: "alpine : net : also on boot"
+  ansible.builtin.lineinfile:
+    path: /etc/modules
+    line: "{{ item }}"
+    state: present
+  loop:
+    - tun
+    - tap
+    - br_netfilter
+  when: virt is defined
+
+# the way alpine does networking restarts is kill everything, then bring everything up
+# that kills the ssh connec, which kills the command before it can bring things back up
+# this is a workaround
+- name: "alpine : template restart script"
+  ansible.builtin.template:
+    src: alpine_netrestart.sh.j2
+    dest: /tmp/alpine_netrestart.sh
+    mode: 0755
+  when: virt is defined
+
+- name: "alpine : exec it"
+  ansible.builtin.shell: sh /tmp/alpine_netrestart.sh & sleep 16
+  when: virt is defined
+  changed_when: false

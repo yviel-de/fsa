@@ -1,0 +1,28 @@
+---
+- name: "mysql : import : generate random id"
+  ansible.builtin.set_fact:
+    randomid: "{{ lookup('community.general.random_string', length=16, special=false) }}"
+
+- name: "mysql : import : setup tempdir"
+  ansible.builtin.file:
+    path: /tmp/{{ randomid }}
+    state: directory
+    mode: 0600
+  changed_when: false
+
+- name: "mysql : import : template out users & dbs"
+  ansible.builtin.template:
+    src: sql_import.sql.j2
+    dest: /tmp/{{ randomid }}/sql_import.sql
+    mode: 0600
+  changed_when: false
+
+- name: "mysql : import : create users and dbs"
+  ansible.builtin.shell: mysql < /tmp/{{ randomid }}/sql_import.sql
+  changed_when: false
+
+- name: "mysql : import : clean up"
+  ansible.builtin.file:
+    path: /tmp/{{ randomid }}
+    state: absent
+  changed_when: false

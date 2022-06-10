@@ -1,0 +1,129 @@
+<domain type='kvm'>
+  <name>{{ item.name }}</name>
+{% if 'M' in item.mem %}
+  <memory unit='MiB'>{{ item.mem|replace('M', '') }}</memory>
+  <currentMemory unit='GiB'>{{ item.mem|replace('M', '') }}</currentMemory>
+{% elif 'G' in item.mem %}
+  <memory unit='GiB'>{{ item.mem|replace('G', '') }}</memory>
+  <currentMemory unit='GiB'>{{ item.mem|replace('G', '') }}</currentMemory>
+{% endif %}
+  <vcpu placement='static'>1</vcpu>
+  <os>
+    <type arch='{{ arch }}' machine='virt-6.1'>hvm</type>
+    <loader readonly='yes' type='pflash'>/usr/share/qemu/edk2-aarch64-code.fd</loader>
+    <nvram template='/usr/share/qemu/edk2-arm-vars.fd'>/var/lib/libvirt/qemu/nvram/{{ item.name }}.fd</nvram>
+{% if not arch == 'aarch64' or (arch == 'aarch64' and (item.iso is defined and not item.iso == 'openbsd')) %}
+    <boot dev='cdrom'/>
+    <boot dev='hd'/>
+{% endif %}
+  </os>
+  <features>
+    <acpi/>
+    <gic version='2'/>
+  </features>
+  <cpu mode='host-passthrough' check='none'/>
+  <on_poweroff>destroy</on_poweroff>
+  <on_reboot>restart</on_reboot>
+  <on_crash>restart</on_crash>
+  <devices>
+    <emulator>/usr/bin/qemu-system-{{ arch }}</emulator>
+{% if item.iso is defined %}
+{# special case: obsd on aarch64 is an img file that needs mounting as disk \#}
+{% if arch == 'aarch64' and item.iso == 'openbsd' %}
+    <disk type='file' device='disk'>
+      <driver name='qemu' type='raw'/>
+      <source file='/home/isos/{{ item.iso }}-fsa-latest.iso'/>
+      <backingStore/>
+      <boot order='1'/>
+      <target dev='hdc' bus='scsi'/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+    <disk type='file' device='disk'>
+      <boot order='2'/>
+{% else %}
+    <disk type='file' device='cdrom'>
+      <driver name='qemu' type='raw'/>
+{% if item.iso == 'debian' or item.iso == 'alpine' or item.iso == 'openbsd' %}
+      <source file='/home/isos/{{ item.iso }}-fsa-latest.iso'/>
+{% else %}
+      <source file='{{ item.iso }}'/>
+{% endif %}
+      <backingStore/>
+      <target dev='hdc' bus='scsi'/>
+      <readonly/>
+      <address type='drive' controller='0' bus='0' target='0' unit='0'/>
+    </disk>
+    <disk type='file' device='disk'>
+{% endif %}
+{% else %}
+    <disk type='file' device='disk'>
+{% endif %}
+      <driver name='qemu' type='qcow2'/>
+      <source file='/home/vms/{{ item.name }}.img'/>
+      <backingStore/>
+      <target dev='vda' bus='virtio'/>
+      <address type='pci' domain='0x0000' bus='0x05' slot='0x00' function='0x0'/>
+    </disk>
+    <controller type='usb' index='0' model='qemu-xhci' ports='15'>
+      <address type='pci' domain='0x0000' bus='0x02' slot='0x00' function='0x0'/>
+    </controller>
+    <controller type='scsi' index='0' model='virtio-scsi'>
+      <address type='pci' domain='0x0000' bus='0x03' slot='0x00' function='0x0'/>
+    </controller>
+    <controller type='pci' index='0' model='pcie-root'/>
+    <controller type='pci' index='1' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='1' port='0x8'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x0' multifunction='on'/>
+    </controller>
+    <controller type='pci' index='2' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='2' port='0x9'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x1'/>
+    </controller>
+    <controller type='pci' index='3' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='3' port='0xa'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x2'/>
+    </controller>
+    <controller type='pci' index='4' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='4' port='0xb'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x3'/>
+    </controller>
+    <controller type='pci' index='5' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='5' port='0xc'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x4'/>
+    </controller>
+    <controller type='pci' index='6' model='pcie-root-port'>
+      <model name='pcie-root-port'/>
+      <target chassis='6' port='0xd'/>
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x01' function='0x5'/>
+    </controller>
+    <controller type='virtio-serial' index='0'>
+      <address type='pci' domain='0x0000' bus='0x04' slot='0x00' function='0x0'/>
+    </controller>
+{% if item.private | default(false) %}
+    <interface type='network'>
+      <source network='private'/>
+{% else %}
+    <interface type='bridge'>
+      <source bridge='public'/>
+      <model type='virtio'/>
+{% endif %}
+      <address type='pci' domain='0x0000' bus='0x00' slot='0x03' function='0x0'/>
+{% if item.mac is defined %}
+      <mac address='{{ item.mac }}'/>
+{% else %}
+      <mac address='{{ random_mac_prefix | community.general.random_mac(seed=ansible_hostname) | replace('\n', '') }}'/>
+{% endif %}
+    </interface>
+    <serial type='pty'>
+      <target port='0'/>
+    </serial>
+    <console type='pty'>
+      <target type='serial' port='0'/>
+    </console>
+  </devices>
+</domain>

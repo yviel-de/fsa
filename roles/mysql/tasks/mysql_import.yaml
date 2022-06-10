@@ -1,0 +1,20 @@
+---
+- name: "mysql : import : copy local imports"
+  ansible.builtin.copy:
+    src: "{{ item.src }}"
+    dest: /tmp/{{ randomid }}/{{ item.src.split('/')[-1] }}
+    remote_src: false
+    mode: 0600
+  when: item.host is not defined
+  loop: "{{ apps.mysql.imports }}"
+
+- name: "mysql : import : import remote sources" # noqa risky-shell-pipe
+  ansible.builtin.shell: mysqldump -h {{ item.host }} -u{{ item.user }} -p{{ item.pass }} -P {{ item.port if item.port is
+    defined else '3306' }} {{ item.src }} | sed 's/{{ item.src }}/{{ item.dest }}/g' | mysql {{ item.dest }}
+  when: item.host is defined
+  loop: "{{ apps.mysql.imports }}"
+
+- name: "mysql : import : import local sources"
+  ansible.builtin.command: mysql {{ item.dest }} < {{ item.src }}
+  loop: "{{ apps.mysql.imports }}"
+  when: apps.mysql.imports is defined and '/' in item.src

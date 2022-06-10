@@ -1,0 +1,14 @@
+---
+- name: "obsd : base : run badhost"
+  include_tasks: openbsd_badhost.yaml
+  when: net.public | default(false)
+
+- name: "obsd : base : conf firewall"
+  ansible.builtin.template:
+    src: pf.conf.j2
+    dest: /etc/pf.conf
+    mode: 0600
+  notify:
+    - pf_syntax
+    - pf_reload
+  changed_when: false

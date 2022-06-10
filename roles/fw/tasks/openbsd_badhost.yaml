@@ -1,0 +1,39 @@
+---
+- name: "obsd : net : badhosts : fetch filter script"
+  ansible.builtin.get_url:
+    url: https://geoghegan.ca/pub/pf-badhost/0.5/pf-badhost.sh
+    dest: /usr/local/bin/pf-badhost
+    mode: 755
+    group: bin
+  register: badhost_changed
+
+- name: "obsd : net : badhosts : create badhost user"
+  ansible.builtin.user:
+    name: _pfbadhost
+    shell: nologin
+    home: /var/empty
+    create_home: false
+
+- name: "obsd : net : badhosts : tune performance"
+  community.general.openbsd_pkg:
+    name:
+      - ripgrep
+      - mawk
+    state: present
+
+# gotta ansible it out some other day. use the filter script as a check for changed
+- name: "obsd : net : badhosts : create binaries" # noqa no-handler
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - install -m 640 -o _pfbadhost -g wheel /dev/null /etc/pf-badhost.txt
+    - install -d -o root -g wheel -m 755 /var/log/pf-badhost
+    - install -o _pfbadhost -g wheel -m 640 /dev/null /var/log/pf-badhost/pf-badhost.log
+    - install -o _pfbadhost -g wheel -m 640 /dev/null /var/log/pf-badhost/pf-badhost.log.0.gz
+  when: badhost_changed.changed
+  notify:
+    - pf_syntax
+    - pf_reload
+
+- name: "obsd : net : badhosts : create first hostlist" # noqa no-handler
+  ansible.builtin.command: doas -u _pfbadhost /usr/local/bin/pf-badhost -O openbsd
+  when: badhost_changed.changed

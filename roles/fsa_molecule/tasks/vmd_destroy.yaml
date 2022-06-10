@@ -1,0 +1,39 @@
+---
+- name: stop VM # noqa risky-shell-pipe
+  ansible.builtin.shell: if vmctl show | grep {{ instancename }} | grep -q running; then vmctl stop {{ instancename }}; while
+    true; do if vmctl show | grep {{ instancename }} | grep -q stopped; then break; else sleep 2; fi; done; fi
+  delegate_to: "{{ runon }}"
+  changed_when: false
+
+- name: undefine VM
+  ansible.builtin.blockinfile:
+    path: /etc/vm.conf
+    marker: "# {mark} {{ instancename }}"
+    state: absent
+  throttle: 1
+  delegate_to: "{{ runon }}"
+
+- name: syntax check
+  ansible.builtin.command: vmd -n
+  delegate_to: "{{ runon }}"
+  changed_when: false
+
+- name: reload vmd
+  ansible.builtin.service:
+    name: vmd
+    state: reloaded
+  delegate_to: "{{ runon }}"
+
+- name: remove disk
+  ansible.builtin.file:
+    path: /home/vms/{{ instancename }}.img
+    state: absent
+  delegate_to: "{{ runon }}"
+  failed_when: false
+
+- name: clean up bastion
+  ansible.builtin.blockinfile:
+    path: ~/.ssh/config
+    marker: "# {{ instancename }} {mark}"
+    state: absent
+  delegate_to: localhost

@@ -1,0 +1,31 @@
+---
+- name: "mysql : alpine : install the package"
+  community.general.apk:
+    name:
+      - mysql
+      - mysql-client
+    state: present
+
+- name: "mysql : alpine : run first setup"
+  ansible.builtin.command: /etc/init.d/mariadb setup
+  register: mysql_firstrun
+  changed_when: "'mysql.user table already exists!' in mysql_firstrun.stdout_lines"
+  failed_when: false
+
+- name: "mysql : alpine : add settings"
+  community.general.ini_file:
+    path: /etc/my.cnf
+    section: "{{ item.section }}"
+    option: "{{ item.option }}"
+    value: "{{ item.value }}"
+    mode: 0640
+  loop: "{{ apps.mysql.config }}"
+  when: apps.mysql.config is defined
+  notify:
+    - mariadb_restart
+
+- name: "mysql : alpine : start & enable the service"
+  ansible.builtin.service:
+    name: mariadb
+    state: started
+    enabled: true

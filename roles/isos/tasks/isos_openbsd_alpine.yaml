@@ -1,0 +1,54 @@
+---
+- name: "isos : openbsd : alpine : determine major version" # noqa risky-shell-pipe
+  ansible.builtin.shell: ftp -o - https://dl-cdn.alpinelinux.org/alpine/ | grep '"v[0-9]\.[0-9]./"' | sed -e 's/\/<\/a>.*//' -e 's/.*>//' | sort | tail -n1
+  register: alp_latest_major
+  changed_when: false
+
+- name: "isos : openbsd : alpine : determine minor version" # noqa risky-shell-pipe
+  ansible.builtin.shell: "ftp -o - https://dl-cdn.alpinelinux.org/alpine/{{ alp_latest_major.stdout }}/releases/x86_64 | tr '=' '\n' \
+    | grep alpine-standard-{{ alp_latest_major.stdout | replace('v', '') }} | cut -d '>' -f1 | grep -vE 'rc|sha|asc' | sort | tail -n1" # noqa yaml
+  register: alp_latest
+  changed_when: false
+
+- name: "isos : openbsd : alpine : download time notif"
+  ansible.builtin.debug:
+    msg: Downloading the latest Alpine ISO. This will take a while.
+
+- name: "isos : openbsd : alpine : fetch latest iso"
+  ansible.builtin.get_url:
+    url: https://dl-cdn.alpinelinux.org/alpine/{{ alp_latest_major.stdout }}/releases/x86_64/{{ alp_latest.stdout | replace('"',
+      '') }}
+    dest: /home/isos/alpine-fsa-latest-{{ randomid }}.iso
+    mode: 0640
+
+- name: "install : alpine : stage files"
+  ansible.builtin.command:
+    cmd: xorriso -osirrox on -indev /home/isos/alpine-fsa-latest-{{ randomid }}.iso -extract / /home/isos/alpine_staging_files_{{
+      randomid }}/
+    creates: /home/isos/alpine_staging_files_{{ randomid }}
+
+- name: "alpine : set initramfs serial"
+  ansible.builtin.template:
+    src: alpine_syslinux.cfg
+    dest: "/home/isos/alpine_staging_files_{{ randomid }}/boot/syslinux/syslinux.cfg"
+    mode: 0644
+
+- name: "install : alpine : conf serial output for grub"
+  ansible.builtin.command: "{{ item }}"
+  loop:
+    - sed -i'' 's/quiet/console=ttyS0,115200n8/g' /home/isos/alpine_staging_files_{{ randomid }}/boot/grub/grub.cfg
+  changed_when: false
+
+- name: "install : alpine : repackage iso"
+  ansible.builtin.command:
+    cmd: xorriso -as mkisofs -o /home/isos/alpine-fsa-latest.iso -isohybrid-mbr /home/isos/alpine_staging_files_{{ randomid
+      }}/boot/syslinux/isohdpfx.bin -c boot/syslinux/boot.cat -b boot/syslinux/isolinux.bin -no-emul-boot -boot-load-size
+      4 -boot-info-table /home/isos/alpine_staging_files_{{ randomid }}
+    creates: /home/isos/alpine-fsa-latest.iso
+
+- name: "install : alpine : clean up"
+  ansible.builtin.set_fact:
+    virt_garbagelist: "{{ virt_garbagelist + [ item ] }}"
+  loop:
+    - /home/isos/alpine_staging_files_{{ randomid }}
+    - /home/isos/alpine-fsa-latest-{{ randomid }}.iso

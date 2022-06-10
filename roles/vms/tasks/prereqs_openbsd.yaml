@@ -1,0 +1,33 @@
+---
+# we need to sanity check a few things before autoinstall
+- name: "prereqs : openbsd : verify selection"
+  ansible.builtin.fail:
+    msg: "install OS must be one of: openbsd, debian, alpine"
+  when: item.install is defined and item.install.os not in ('openbsd','debian','alpine')
+  loop: "{{ virt.vms }}"
+
+# required to enable serial output & repackage the isos
+- name: "prereqs : openbsd : install helpers"
+  community.general.openbsd_pkg:
+    name:
+      - "{{ item.name }}"
+    state: present
+  when: item.when
+  loop:
+    - name: xorriso--
+      when: virt.vms | selectattr('install', 'defined') | selectattr('install.os', 'in', ('debian','alpine')) | length > 0
+
+# failed_when to handle already existing disks
+- name: "prereqs : openbsd : create disks"
+  ansible.builtin.command: vmctl create -s {{ item.size }} /home/vms/{{ item.name }}.img
+  loop: "{{ virt.vms }}"
+  failed_when: false
+  register: disk
+  changed_when: disk.rc == 0
+
+- name: "prereqs : openbsd : create interfaces"
+  ansible.builtin.shell: cd /dev; sh MAKEDEV tap{{ tapnr }}
+  loop: "{{ virt.vms }}"
+  loop_control:
+    index_var: tapnr
+  changed_when: false

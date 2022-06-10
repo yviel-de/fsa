@@ -1,0 +1,41 @@
+# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+
+prefork 16
+types { include "/usr/share/misc/mime.types" }
+
+{% if web.sites is defined %}
+{% for site in web.sites %}
+{% if site.root is defined %}
+include "/etc/httpd.{{ site.name }}.conf"
+{% endif %}
+{% endfor %}
+{% endif %}
+
+{% if virt is defined %}
+server "100.92.0.1" {
+    listen on 100.92.0.1 port 80
+    root "/vmd_autoinstall"
+    tcp { nodelay }
+    log style forwarded
+    log access "access.log"
+    log error "error.log"
+}
+{% endif %}
+
+server "*" {
+	listen on * port 80
+	location "/.well-known/acme-challenge/*" {
+		root "/acme"
+		request strip 2
+	}
+{% if web.sites is defined and web.sites | selectattr('tls', 'defined') | length > 0 %}
+	location * {
+		block return 302 "https://$HTTP_HOST$REQUEST_URI"
+	}
+    tcp { nodelay }
+{% endif %}
+    log style forwarded
+    log access "access.log"
+    log error "error.log"
+}
+

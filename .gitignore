@@ -1,0 +1,7 @@
+# fsa tempfiles
+*.fsa.tmp
+# pinned in requirements.txt
+Pipfile
+Pipfile.lock
+# utils/test-fsa.sh logfiles
+roles/*/*.log

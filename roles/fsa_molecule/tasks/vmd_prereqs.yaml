@@ -1,0 +1,21 @@
+---
+# use the network interfaces and presence of vm.conf check
+- name: check network interfaces # noqa risky-shell-pipe
+  ansible.builtin.shell: ifaces=$(ifconfig | grep -E '^[a-z]+[0-9]:' | cut -d ':' -f1); for i in vether0 vether1 bridge0 bridge1
+    bridge2; do if ! echo $ifaces | grep -q $i; then exit 1; fi; done
+  register: vmd_network
+  failed_when: false
+  changed_when: false
+  delegate_to: "{{ runon }}"
+
+- name: check vmd configuration
+  ansible.builtin.stat:
+    path: /etc/vm.conf
+  register: vmd_config
+  delegate_to: "{{ runon }}"
+
+- name: if fsa-virt not found
+  ansible.builtin.fail:
+    msg: Please run a full fsa `virt` before proceeding
+  when: vmd_network.rc != 0 or not vmd_config.stat.exists
+  delegate_to: "{{ runon }}"

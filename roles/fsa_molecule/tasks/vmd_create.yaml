@@ -1,0 +1,138 @@
+---
+- name: check template
+  ansible.builtin.stat:
+    path: /home/isos/fsa-template-{{ template }}
+  register: vmd_vmtemplate
+  delegate_to: "{{ runon }}"
+
+- name: if not found
+  ansible.builtin.fail:
+    msg: VM template {{ template }} not found
+  when: vmd_vmtemplate.stat.exists
+  delegate_to: "{{ runon }}"
+
+- name: make sure not already running # noqa risky-shell-pipe
+  ansible.builtin.shell: vmctl show | grep -q {{ instancename }}
+  failed_when: false
+  changed_when: false
+  register: vmd_alreadyruns
+  delegate_to: "{{ runon }}"
+
+- name: if already running
+  ansible.builtin.fail:
+    msg: "VM instance {{ instancename }} is already running\nUnfortunately any given test can only run once at a time"
+  when: vmd_alreadyruns.rc == 0
+  delegate_to: "{{ runon }}"
+  throttle: 1
+
+- name: copy from template
+  ansible.builtin.copy:
+    src: /home/isos/fsa-template-{{ template }}.img
+    dest: /home/vms/{{ instancename }}.img
+    remote_src: true
+    mode: 0600
+  delegate_to: "{{ runon }}"
+  throttle: 1
+
+- name: configure VM
+  ansible.builtin.blockinfile:
+    path: /etc/vm.conf
+    marker: "# {mark} {{ instancename }}"
+    insertafter: EOF
+    block: |
+      vm "{{ instancename }}" {
+          memory 256M
+          disk "/home/vms/{{ instancename }}.img"
+          interface tap {
+              switch "staging"
+              lladdr {{ '8a:d8:ad' | community.general.random_mac(seed=instancename) }}
+          }
+      }
+  delegate_to: "{{ runon }}"
+  throttle: 1
+
+- name: syntax check
+  ansible.builtin.command: vmd -n
+  delegate_to: "{{ runon }}"
+  changed_when: false
+
+- name: start the machine
+  ansible.builtin.service:
+    name: vmd
+    state: reloaded
+  delegate_to: "{{ runon }}"
+
+- name: really start it
+  ansible.builtin.command: vmctl start {{ instancename }}
+  delegate_to: "{{ runon }}"
+  changed_when: false
+  failed_when: false
+
+# sleep another bit at the end for all the services to come up after dhcp acquire
+- name: wait for it to boot # noqa risky-shell-pipe
+  ansible.builtin.shell: vmctl start {{ instancename }}; while true; do if tail -10 /var/log/dhcpd.log | grep {{ '8a:d8:ad'
+    | community.general.random_mac(seed=instancename) }} | grep -q DHCPACK; then ip=$(tail -10 /var/log/dhcpd.log | grep {{
+    '8a:d8:ad' | community.general.random_mac(seed=instancename) }} | grep DHCPACK | awk '{print $8}' | tail -1); break; else
+    sleep 0.5; fi; done; echo $ip; sleep 20
+  register: ipaddr
+  delegate_to: "{{ runon }}"
+  changed_when: false
+
+# surprisingly there is no native way to do this
+- name: make sure is pingable
+  ansible.builtin.command: ping -c 4 {{ ipaddr.stdout }}
+  delegate_to: "{{ runon }}"
+  changed_when: false
+
+# we have to put it in the users sshconfig cause molecule wont take a custom one with a managed driver. yeah.
+- name: set up SSH bastion
+  ansible.builtin.blockinfile:
+    path: ~/.ssh/config
+    marker: "# {{ instancename }} {mark}"
+    insertbefore: BOF
+    state: present
+    create: true
+    mode: 0640
+    block: |
+      Host {{ inventory_hostname }}
+        Hostname {{ ipaddr.stdout }}
+        User root
+        ProxyCommand ssh -W %h:%p {{ runon }}
+        # we do this so the changing host key doesn't trip up known_hosts
+        UserKnownHostsFile /dev/null
+        StrictHostKeyChecking no
+      Host {{ runon }}
+        ControlMaster auto
+        ControlPath ~/.ssh/ansible-%r@%h:%p
+        ControlPersist 5m
+  delegate_to: localhost
+  throttle: 1
+
+- name: check for python3
+  ansible.builtin.raw: which python3
+  register: py3
+  changed_when: false
+  failed_when: false
+  when: bootstrap
+
+- name: install if not exists
+  ansible.builtin.raw: pkg_add python3 || apk add python3 || apt install python3
+  when: bootstrap and not py3.rc == 0
+  throttle: 1
+
+- name: run updates
+  ansible.builtin.raw: sysupdate || apk -y update || apt -y full-upgrade
+  when: osupdate | default(false)
+  throttle: 1
+
+- name: wait a second
+  ansible.builtin.wait_for:
+    timeout: 1
+  delegate_to: localhost
+
+# this also serves as a failcheck for python3
+- name: set hostname
+  ansible.builtin.command: hostname {{ instancename }}
+  changed_when: false
+  throttle: 1
+  when: bootstrap

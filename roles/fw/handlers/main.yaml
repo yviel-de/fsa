@@ -1,0 +1,6 @@
+---
+- name: pf_syntax
+  ansible.builtin.command: pfctl -f /etc/pf.conf -n
+
+- name: pf_reload
+  ansible.builtin.command: pfctl -f /etc/pf.conf

@@ -1,0 +1,59 @@
+{% for iface in net.ifaces %}
+{% if iface.addr is defined or iface.netmask is defined %}
+    subnet {{ iface.addr }} netmask {{ iface.netmask }} {
+{% if iface.dhcp is defined %}
+{% for subnet in iface.dhcp %}
+{% if subnet.range is defined %}
+        range {{ subnet.range }};
+{% endif %}
+        option domain-name "{{ subnet.domain | default('fsa.local') }}";
+
+{% if subnet.routers is defined %}
+        option routers {{ subnet.routers }};
+{% else %}
+        option routers {{ iface.addr }};
+{% endif %}
+{% if subnet.dnssrv is defined %}
+        option domain-name-servers {{ subnet.dnssrv }};
+{% elif net.dns is defined %}
+        option domain-name-servers {{ iface.addr }};
+{% endif %}
+{% if (subnet.deny_unknown is defined and subnet.deny_unknown) %}
+        deny unknown-clients;
+{% endif %}
+{% if subnet.lease_time is defined %}
+        max-lease-time {{ subnet.lease_time }};
+{% endif %}
+
+{% if subnet.leases is defined %}
+{% for lease in subnet.leases %}
+        host {{ lease.name }} {
+            hardware ethernet {{ lease.mac }};
+            fixed-address {{ lease.ip }};
+        }
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endif %}
+    }
+{% endif %}
+{% endfor %}
+
+{% if virt is defined %}
+{# vmd private net \#}
+    subnet 172.19.24.0 netmask 255.255.255.0 {
+        range 172.19.24.2 172.19.24.254;
+        option domain-name "vmd.local";
+        option routers 172.19.24.0;
+        option domain-name-servers 172.19.24.1;
+        max-lease-time 3600;
+    }
+{# vmd autoinstall / molecule \#}
+    subnet 100.92.0.1 netmask 255.255.255.0 {
+        range 100.92.0.2 100.92.0.254;
+        option domain-name "vmd.staging.local";
+        option routers 100.92.0.1;
+        option domain-name-servers 100.92.0.1;
+        max-lease-time 60;
+    }
+{% endif %}

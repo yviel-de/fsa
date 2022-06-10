@@ -1,0 +1,23 @@
+---
+# set the var. doubly matters since we're in a loop
+- name: "isos : linux : {{ os_iso }} : clear cache"
+  ansible.builtin.set_fact:
+    iso_required: false
+
+# need to externalize this check bc of the loop
+- name: "isos : linux : {{ os_iso }} : check if required"
+  ansible.builtin.set_fact:
+    iso_required: "{{ true if ( (item.iso is defined and item.iso == os_iso) or (item.install is defined and item.install.os\
+      \ == os_iso) ) else iso_required }}"
+  loop: "{{ virt.vms }}"
+
+# we re-pull new isos if the existing files are older than 3 months
+- name: "isos : linux : {{ os_iso }} : check for existing image"
+  ansible.builtin.stat:
+    path: /home/isos/{{ os_iso }}-fsa-latest.iso
+  register: stat_iso
+
+- name: "isos : linux : {{ os_iso }} : download {{ os_iso }}"
+  include_tasks: isos_linux_{{ os_iso }}.yaml
+  when: iso_required and ( not stat_iso.stat.exists or (stat_iso.stat.exists and ansible_date_time.epoch|int - stat_iso.stat.mtime
+    > 7770000) )

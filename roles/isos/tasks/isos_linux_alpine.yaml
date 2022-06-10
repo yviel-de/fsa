@@ -1,0 +1,24 @@
+---
+- name: "isos : linux : alpine : determine major version" # noqa command-instead-of-module
+  ansible.builtin.shell: set -o pipefail; curl https://dl-cdn.alpinelinux.org/alpine/ | grep '"v[0-9]\.[0-9]./"' | sed -e
+    's/\/<\/a>.*//' -e 's/.*>//' | sort | tail -n1
+  register: alp_latest_major
+  changed_when: false
+
+- name: "isos : linux : alpine : determine minor version" # noqa command-instead-of-module
+  ansible.builtin.shell: "set -o pipefail; curl https://dl-cdn.alpinelinux.org/alpine/{{ alp_latest_major.stdout }}/releases/{{\
+    \ arch }}/ | tr '=' '\n' | grep alpine-virt-{{ alp_latest_major.stdout | replace('v', '') }} | cut -d '>' -f1 | grep -vE\
+    \ 'sha|asc' | sort | tail -n1"
+  register: alp_latest
+  changed_when: false
+
+- name: "isos : linux : alpine : download time notif"
+  ansible.builtin.debug:
+    msg: Downloading the latest Alpine ISO. This will take a while.
+
+- name: "isos : linux : alpine : fetch latest iso"
+  ansible.builtin.get_url:
+    url: https://dl-cdn.alpinelinux.org/alpine/{{ alp_latest_major.stdout | replace('"', '') }}/releases/{{ ansible_facts.machine
+      }}/{{ alp_latest.stdout | replace('"', '') }}
+    dest: /home/isos/alpine-fsa-latest.iso
+    mode: 0640

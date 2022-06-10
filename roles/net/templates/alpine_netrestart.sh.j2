@@ -1,0 +1,4 @@
+#!/bin/sh
+
+ifconfig {{ virt.bridge }} 0.0.0.0
+/etc/init.d/networking restart

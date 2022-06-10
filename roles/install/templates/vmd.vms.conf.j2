@@ -1,0 +1,16 @@
+vm "{{ item.name }}" {
+    memory {{ item.mem }}
+    disk "/home/vms/{{ item.name }}.img"
+{% if item.install.os == 'openbsd' %}
+    cdrom "/home/isos/openbsd-fsa-latest.iso"
+{% elif item.install.os == 'debian' %}
+    cdrom "/home/isos/debian-fsa-{{ item.name }}-autoinstall.iso"
+{% elif item.install.os == 'alpine' %}
+    cdrom "/home/isos/alpine-fsa-{{ item.name }}-autoinstall.iso"
+{% endif %}
+
+    interface tap {
+        switch "staging"
+        lladdr {{ '8a:d8:ad' | community.general.random_mac(seed=item.name) }}
+    }
+}

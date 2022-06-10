@@ -1,0 +1,4 @@
+---
+- name: "openbsd : dovecot"
+  include_tasks: openbsd_boxes.yaml
+  when: mail.boxes is defined and ansible_facts['os_family']|lower == 'openbsd'

@@ -1,0 +1,17 @@
+---
+- name: netstart
+  ansible.builtin.command: sh /etc/netstart {{ item.name }}
+  loop: "{{ net.ifaces }}"
+
+- name: netstart_virt
+  ansible.builtin.command: sh /etc/netstart {{ item }}
+  loop: "{{ net_virt_ifaces.results | selectattr('changed', 'eq', 'true') | map(attribute='item') }}"
+
+- name: sysctl_forwarding
+  ansible.builtin.command: /usr/sbin/sysctl net.inet.ip.forwarding=1
+
+- name: dhcpleased_restart
+  ansible.builtin.service:
+    name: dhcpleased
+    state: restarted
+    enabled: true

@@ -1,0 +1,7 @@
+System hostname = {{ vm.name }}
+Password for root = {{ '*************' if vm.install.rootpw is not defined else vm.install.rootpw }}
+Public ssh key for root = {{ lookup('file', vm.install.key) }}
+What timezone are you in = {{ vm.install.time }}
+Allow root ssh login = prohibit-password
+Continue without verification = yes
+

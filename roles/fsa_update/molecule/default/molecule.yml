@@ -1,0 +1,30 @@
+---
+driver:
+  name: delegated
+platforms:
+  - name: obsd
+    host: kane
+    type: openbsd
+  - name: alpine
+    host: kane
+    type: alpine
+provisioner:
+  name: ansible
+  options:
+    # ansible diff mode
+    D: true
+  config_options:
+    defaults:
+      stdout_callback: debug
+      interpreter_python: auto_silent
+  env:
+    ANSIBLE_ROLES_PATH: ../
+  playbooks:
+    create: ../../../fsa_molecule/create.yaml
+    converge: ../../../fsa_molecule/converge.yaml
+    destroy: ../../../fsa_molecule/destroy.yaml
+verifier:
+  name: ansible
+lint: |
+  yamllint . -c ../../.yamllint
+  ansible-lint -c ../../.ansible-lint

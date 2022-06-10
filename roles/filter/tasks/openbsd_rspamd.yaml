@@ -1,0 +1,28 @@
+---
+- name: "obsd : filters : install spam filters"
+  community.general.openbsd_pkg:
+    name:
+      - opensmtpd-filter-senderscore
+      - opensmtpd-filter-rspamd
+      - rspamd--hyperscan
+      - redis
+    state: present
+
+- name: "obsd : filters : template configuration"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: 0640
+  loop:
+    - { src: settings.conf.j2, dst: /etc/rspamd/local.d/settings.conf }
+  #    - { src: dyndns.j2, dst: /etc/mail/dyndns }
+  notify:
+    - rspamd_restart
+    - smtpd_syntax
+    - smtpd_restart
+
+- name: "obsd : filters : set up boxes filtering"
+  community.general.openbsd_pkg:
+    name: dovecot-pigeonhole
+    state: present
+  when: mail.boxes is defined

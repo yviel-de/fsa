@@ -1,0 +1,26 @@
+---
+- name: "run : linux : template VMs"
+  ansible.builtin.template:
+    src: kvm.vms.xml.j2
+    dest: /etc/libvirt/qemu/{{ item.name }}.xml
+    mode: 0600
+  loop: "{{ virt.vms }}"
+  register: vmchange
+  notify:
+    - kvm_reload
+
+- name: "run : linux : create VMs"
+  ansible.builtin.shell: set -o pipefail; if ! virsh list --all | awk '{print $2}' | grep -vE 'Name|^$' | grep -q {{ item.name
+    }}; then virsh create /etc/libvirt/qemu/{{ item.name }}.xml; echo changed; fi
+  loop: "{{ virt.vms }}"
+  register: vmcreate
+  changed_when: vmcreate.stdout == 'changed'
+
+- name: "run : linux : set up autostart"
+  ansible.builtin.command: virsh autostart {{ item.name }}
+  when: item.autostart | default(true)
+  failed_when: false
+  changed_when: false
+  loop: "{{ virt.vms }}"
+  notify:
+    - kvm_reload

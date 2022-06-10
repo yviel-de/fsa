@@ -1,0 +1,53 @@
+---
+# openbsd is installed through dhcpd indicating a response file served through http
+- name: "install : openbsd : openbsd : configure VM"
+  ansible.builtin.template:
+    src: obsd_autoinstall.conf.j2
+    dest: /var/www/vmd_autoinstall/{{ vm.name }}-install.conf
+    mode: 0644
+
+# dhcpd.conf doesn't do includes, so we have to mess with blockinfile
+- name: "install : openbsd : openbsd : configure dhcpd"
+  ansible.builtin.blockinfile:
+    path: /etc/dhcpd.conf
+    marker: "# {{ vm.name }} autoinstall {mark}"
+    insertafter: ^        max-lease-time 260;$
+    block: |
+      host {{ vm.name }} {
+        hardware ethernet {{ '8a:d8:ad' | community.general.random_mac(seed=vm.name) }};
+        fixed-address 100.92.0.{{ 254 | random(start=2, seed=vm.name) }};
+        filename "auto_install";
+        next-server 100.92.0.1;
+        option host-name "{{ vm.name }}";
+      }
+  notify: dhcpd_restart
+
+- name: "install : openbsd : openbsd : reload"
+  ansible.builtin.meta: flush_handlers
+
+# if the vm was already defined, it won't autostart on vmd reload
+- name: "install : openbsd : openbsd : start"
+  ansible.builtin.command: vmctl start {{ vm.name }}
+  changed_when: false
+  failed_when: false
+
+- name: "install : openbsd : openbsd : wait for the vm to boot"
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+# we still need to to manually select A at the install prompt
+# looks funny, i know :) i could ever only pipe single characters to `vmctl console`, or `cu` for that matter
+# maybe i'll figure something out with `expect` or something in the future
+# we have to sleep a bit afterwards to give the system time to acquire a dhcp lease and download the file
+- name: "install : openbsd : openbsd : execute autoinstall" # noqa risky-shell-pipe
+  ansible.builtin.shell: for i in A ''; do echo $i | vmctl console {{ vm.name }}; sleep 0.2; done; sleep 10
+  changed_when: false
+
+- name: "install : openbsd : openbsd : cleanup dhcpd"
+  ansible.builtin.blockinfile:
+    path: /etc/dhcpd.conf
+    marker: "# {{ vm.name }} autoinstall {mark}"
+    state: absent
+  notify: dhcpd_restart

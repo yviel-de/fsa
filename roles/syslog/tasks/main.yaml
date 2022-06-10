@@ -1,0 +1,4 @@
+---
+- name: "obsd : syslog"
+  include_tasks: openbsd_syslog.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

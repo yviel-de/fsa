@@ -1,0 +1,9 @@
+---
+- name: smtpd_syntax
+  ansible.builtin.command: smtpd -n
+
+- name: smtpd_restart
+  ansible.builtin.service:
+    name: smtpd
+    state: restarted
+    enabled: true

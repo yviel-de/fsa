@@ -1,0 +1,5 @@
+---
+# mail also requires ssl
+- name: "obsd : php-fpm"
+  include_tasks: openbsd_php.yaml
+  when: web.php is defined and ansible_facts['os_family']|lower == 'openbsd'

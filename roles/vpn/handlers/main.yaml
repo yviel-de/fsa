@@ -1,0 +1,6 @@
+---
+- name: wg_netstart
+  ansible.builtin.command: sh /etc/netstart wg0
+
+- name: sysctl_forwarding
+  ansible.builtin.command: /usr/sbin/sysctl net.inet.ip.forwarding=1

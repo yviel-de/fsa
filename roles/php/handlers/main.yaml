@@ -1,0 +1,9 @@
+---
+- name: php_syntax
+  ansible.builtin.command: php-fpm-{{ web.httpd.php.version.split('.')[0:2] | join('.') }} -t
+
+- name: php_restart
+  ansible.builtin.service:
+    name: php{{ web.httpd.php.version.split('.')[0:2] | join('') }}_fpm
+    state: restarted
+    enabled: true

@@ -1,0 +1,17 @@
+---
+- name: "obsd : Firmware check"
+  ansible.builtin.command: fw_update
+  register: fw_update
+  changed_when: fw_update.rc != 0
+
+- name: "obsd : Base updates"
+  community.general.syspatch:
+  register: syspatch
+  changed_when: syspatch.rc != 0
+  notify:
+    - openbsd_reboot
+
+- name: "obsd : Package updates"
+  community.general.openbsd_pkg:
+    name: "*"
+    state: latest

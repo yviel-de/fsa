@@ -1,0 +1,23 @@
+---
+- name: "isos : openbsd : openbsd : grab version" # noqa risky-shell-pipe
+  ansible.builtin.shell: ftp -o - http://ftp.openbsd.org/pub/OpenBSD/ | grep '"[0-9]\.[0-9]/"' | sed -e 's/\/<\/a>.*//' -e
+    's/.*>//' | sort | tail -n1
+  register: obsd_latest_test
+  changed_when: false
+
+# TODO: temporary hack. this whole version handling really needs an overhaul
+- name: "TEMP: 7.1 not out yet"
+  ansible.builtin.set_fact:
+    obsd_latest:
+      stdout: "{{ '7.0' if obsd_latest_test.stdout == '7.1' else obsd_latest_test.stdout }}"
+
+- name: "isos : openbsd : openbsd : download time notif"
+  ansible.builtin.debug:
+    msg: Downloading the latest OpenBSD ISO. This will take a while.
+
+- name: "isos : openbsd : openbsd : grab latest iso"
+  ansible.builtin.get_url:
+    url: https://cdn.openbsd.org/pub/OpenBSD/{{ obsd_latest.stdout }}/{{ arch }}/install{{ obsd_latest.stdout | replace('.',
+      '') }}.iso
+    dest: /home/isos/openbsd-fsa-latest.iso
+    mode: 0640

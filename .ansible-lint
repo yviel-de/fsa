@@ -1,0 +1,11 @@
+---
+exclude_paths:
+  - roles/*/molecule/*/*.yml
+  - .drone.yml
+use_default_rules: true
+# we exec yamllint separately
+skip_list:
+  - experimental
+#  - yaml
+#write_list:
+#  - all

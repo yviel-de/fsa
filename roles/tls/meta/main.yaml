@@ -1,0 +1,5 @@
+---
+dependencies:
+  # technically dependent on httpd, but creates a loop since httpd also depends on tls
+  #  - role: httpd
+  - role: cron

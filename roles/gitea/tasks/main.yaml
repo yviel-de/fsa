@@ -1,0 +1,8 @@
+---
+- name: "apps: install gitea"
+  include_tasks: alpine_gitea.yaml
+  when: apps.gitea is defined and ansible_distribution | lower == 'alpine'
+
+- name: "apps: install gitea"
+  include_tasks: openbsd_gitea.yaml
+  when: apps.gitea is defined and ansible_distribution | lower == 'openbsd'

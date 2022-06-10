@@ -1,6 +1,0 @@
----
-- name: "openbsd_reboot"
-  debug:
-    msg: "Reboot required to apply system updates!"
-  when: openbsd_reboot.reboot_needed
-

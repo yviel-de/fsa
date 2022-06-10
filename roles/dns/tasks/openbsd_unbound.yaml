@@ -1,0 +1,52 @@
+---
+# point resolv.conf to localhost, tell dhcpleased to ignore server-provided dns
+- name: "obsd : dns : template the config"
+  ansible.builtin.template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dst }}"
+    mode: 0644
+  loop:
+    - { src: unbound.conf.j2, dst: /var/unbound/etc/unbound.conf }
+    - { src: resolv.conf.j2, dst: /etc/resolv.conf }
+    - { src: dhcpleased.conf.j2, dst: /etc/dhcpleased.conf }
+  notify:
+    - unbound_restart
+    - dhcpleased_restart
+
+- name: "obsd : dns : set up logfile"
+  ansible.builtin.file:
+    path: /var/log/unbound.log
+    state: touch
+    mode: 0640
+  changed_when: false
+
+# convenience
+- name: "obsd : dns : symlink it to /etc"
+  ansible.builtin.file:
+    src: /var/unbound/etc/unbound.conf
+    dest: /etc/unbound.conf
+    state: link
+
+- name: "obsd : dns : check if DNSSEC KSK exists"
+  ansible.builtin.stat:
+    path: /var/unbound/db/root.key
+  register: ksk
+
+- name: "obsd : dns : not exists. generate..."
+  ansible.builtin.command: /usr/sbin/unbound-anchor -a /var/unbound/db/root.key
+  when: not ksk.stat.exists
+  failed_when: false
+  notify:
+    - unbound_restart
+
+- name: "obsd : dns : get root hints"
+  ansible.builtin.get_url:
+    url: https://www.internic.net/domain/named.root
+    dest: /var/unbound/etc/root.hints
+    mode: 0640
+  notify:
+    - unbound_restart
+
+- name: "obsd : dns : set up filtering"
+  include_tasks: openbsd_adblock.yaml
+  when: net.dns.filter | default(true)

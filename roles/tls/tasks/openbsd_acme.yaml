@@ -1,0 +1,10 @@
+---
+- name: "obsd : tls : configure acme-client"
+  ansible.builtin.template:
+    src: acme-client.conf.j2
+    dest: /etc/acme-client.conf
+    mode: 0600
+  notify:
+    - acme_syntax
+    - acme_request
+  changed_when: false

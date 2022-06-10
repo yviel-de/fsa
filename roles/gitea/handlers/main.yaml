@@ -1,0 +1,6 @@
+---
+- name: gitea_restart
+  ansible.builtin.service:
+    name: gitea
+    state: restarted
+    enabled: true

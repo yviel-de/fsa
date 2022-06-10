@@ -1,0 +1,11 @@
+---
+- name: download/build latest isos
+  include_tasks: isos.yaml
+  when: virt.vms is defined and ( virt.vms|selectattr('install', 'defined')|length > 0 or virt.vms|selectattr('iso', 'defined')|length
+    > 0 )
+
+- name: clean up
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop: "{{ virt_garbagelist }}"

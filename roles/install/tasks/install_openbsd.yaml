@@ -1,0 +1,31 @@
+---
+- name: "install : openbsd : configure VMs"
+  ansible.builtin.template:
+    src: vmd.vms.conf.j2
+    dest: /etc/vm.{{ item.name }}_autoinstall.conf
+    mode: 0640
+  loop: "{{ virt.vms }}"
+  when: item.install is defined
+  notify:
+    - vmd_syntax
+    - vmd_reload
+
+- name: "install : openbsd : stop if running" # noqa risky-shell-pipe
+  ansible.builtin.shell: if vmctl show | grep {{ item.name }}; then vmctl stop {{ item.name }}; fi
+  loop: "{{ virt.vms }}"
+  when: item.install is defined
+  failed_when: false
+
+- name: "install : openbsd : install alpine"
+  include_tasks: install_openbsd_alpine.yaml
+  loop: "{{ virt.vms }}"
+  loop_control:
+    loop_var: vm
+  when: vm.install is defined and vm.install.os == 'alpine'
+
+- name: "install : openbsd : install openbsd"
+  include_tasks: install_openbsd_openbsd.yaml
+  loop: "{{ virt.vms }}"
+  loop_control:
+    loop_var: vm
+  when: vm.install is defined and vm.install.os == 'openbsd'

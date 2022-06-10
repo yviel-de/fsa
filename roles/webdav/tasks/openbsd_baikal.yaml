@@ -1,0 +1,50 @@
+---
+- name: "apps : dav : prerequisites"
+  community.general.openbsd_pkg:
+    name: unzip--
+    state: present
+
+- name: "apps : dav : determine install path"
+  ansible.builtin.set_fact:
+    davsite: "{{ item }}"
+  when: apps.webdav.site in item.name
+  loop: "{{ web.sites }}"
+
+- name: "apps : dav : web.site check"
+  ansible.builtin.fail:
+    msg: Select a valid web.site for your app
+  when: davsite is undefined
+
+- name: "apps : dav : check if already installed"
+  ansible.builtin.stat:
+    path: "/var/www{{ davsite.root }}/Specific/"
+  register: davinstalled
+
+- name: "apps : dav : unpack v{{ baikal_version }}"
+  ansible.builtin.unarchive:
+    src: https://github.com/sabre-io/Baikal/releases/download/{{ baikal_version }}/baikal-{{ baikal_version }}.zip
+    dest: /tmp/
+    remote_src: true
+  when: not davinstalled.stat.exists
+
+- name: "apps : dav : take live"
+  ansible.builtin.copy:
+    src: "/tmp/baikal/"
+    dest: "/var/www{{ davsite.root }}"
+    remote_src: true
+  when: not davinstalled.stat.exists
+
+- name: "apps : dav : set permissions"
+  ansible.builtin.file:
+    path: "/var/www{{ davsite.root }}/baikal/{{ item }}"
+    owner: www
+    recurse: true
+  loop:
+    - Specific
+    - config
+
+- name: "apps : dav : set admin users" # noqa risky-shell-pipe
+  ansible.builtin.shell: echo {{ item.user }}:{{ item.pass }} | htpasswd -I /var/www{{ davsite.root }}/.auth && chown :www
+    /var/www{{ davsite.root }}/.auth && chmod 0640 /var/www{{ davsite.root }}/.auth
+  changed_when: false
+  loop: "{{ apps.webdav.admin }}"

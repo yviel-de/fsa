@@ -1,0 +1,48 @@
+---
+- name: "obsd : smtpd : install extras"
+  community.general.openbsd_pkg:
+    name: opensmtpd-extras
+    state: present
+
+- name: "obsd : smtpd : template the main config"
+  ansible.builtin.template:
+    src: smtpd.conf.j2
+    dest: /etc/mail/smtpd.conf
+    mode: 0600
+  notify:
+    - smtpd_syntax
+    - smtpd_restart
+
+- name: "obsd : smtpd : setup domains file"
+  ansible.builtin.template:
+    src: domains.j2
+    dest: /etc/mail/domains
+    mode: 0600
+  notify:
+    - smtpd_syntax
+    - smtpd_restart
+  when: mail.domains is defined
+
+- name: "obsd : smtpd : set up whitelist"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/mail/{{ item }}
+    mode: 0600
+  loop:
+    - whitelist
+  notify:
+    - smtpd_syntax
+    - smtpd_restart
+
+- name: "obsd : smtpd : set up tables"
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: /etc/mail/{{ item }}
+    mode: 0600
+  loop:
+    - passwd
+    - virtuals
+  notify:
+    - smtpd_syntax
+    - smtpd_restart
+  when: mail.users is defined or mail.boxes is defined or mail.virtuals is defined

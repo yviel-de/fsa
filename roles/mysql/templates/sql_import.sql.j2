@@ -1,0 +1,22 @@
+{% if apps.mysql.dbs is defined %}
+{% for db in apps.mysql.dbs %}
+CREATE DATABASE IF NOT EXISTS {{ db }};
+{% endfor %}
+{% endif %}
+{% if apps.mysql.users is defined %}
+{% for user in apps.mysql.users %}
+{% if user.on is defined %}
+GRANT ALL ON {{ user.on }}.* TO
+{%- else %}
+CREATE USER IF NOT EXISTS
+{%- endif %}
+ '{{ user.name }}'@
+{%- if user.from is defined %}
+'{{ user.from }}'
+{%- else %}
+'localhost'
+{%- endif %}
+ IDENTIFIED BY '{{ user.pass }}';
+{% endfor %}
+{% endif %}
+FLUSH PRIVILEGES;

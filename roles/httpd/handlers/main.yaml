@@ -1,0 +1,9 @@
+---
+- name: httpd_syntax
+  ansible.builtin.command: httpd -n
+
+- name: httpd_restart
+  ansible.builtin.service:
+    name: httpd
+    state: restarted
+    enabled: true

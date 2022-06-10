@@ -1,0 +1,37 @@
+# Configuration cheat sheet: https://docs.gitea.io/en-us/config-cheat-sheet/
+
+RUN_USER = gitea
+RUN_MODE = prod
+
+APP_NAME = {{ apps.gitea.name | default('My Beautiful Gitea') }}
+
+[repository]
+ROOT = /var/lib/gitea/git
+SCRIPT_TYPE = sh
+
+[server]
+STATIC_ROOT_PATH = /usr/share/webapps/gitea
+APP_DATA_PATH    = /var/lib/gitea/data
+LFS_START_SERVER = true
+
+[database]
+DB_TYPE = sqlite3
+PATH = /var/lib/gitea/db/gitea.db
+SSL_MODE = disable
+
+[session]
+PROVIDER = file
+
+[log]
+ROOT_PATH = /var/log/gitea
+MODE = file
+LEVEL = Info
+
+[ui]
+SHOW_USER_EMAIL = false
+DEFAULT_THEME = arc-green
+
+[admin]
+DEFAULT_EMAIL_NOTIFICATIONS: disabled
+DISABLE_REGULAR_ORG_CREATION: true
+

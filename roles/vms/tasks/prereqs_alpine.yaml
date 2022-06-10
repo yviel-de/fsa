@@ -1,0 +1,54 @@
+---
+# required to determine version
+- name: "prereqs : alpine : install curl"
+  community.general.apk:
+    name:
+      - curl
+    state: present
+    update_cache: true
+
+- name: "prereqs : alpine : create disks"
+  ansible.builtin.shell: if ! [ -f /home/vms/{{ item.name }}.img ]; then qemu-img create -f qcow2 /home/vms/{{ item.name }}.img
+    {{ item.size }} >/dev/null 2>&1 && echo changed; fi
+  loop: "{{ virt.vms }}"
+  failed_when: false
+  register: disk
+  changed_when: disk.stdout == 'changed'
+
+- name: "prereqs : alpine : read mac prefix"
+  ansible.builtin.slurp:
+    src: /root/kvm_macprefix_donotdelete
+  register: macprefix
+  failed_when: false
+
+# i'm sure there's a prettier way, but don't care right now
+# allowed mac prefixes are x2, x6, xA and xE
+- name: "prereqs : alpine : choose mac prefix"
+  ansible.builtin.set_fact:
+    random_mac_prefix: "{{ item }}"
+  with_random_choice:
+    - "{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}2:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}"
+    - "{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}6:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}"
+    - "{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}A:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}"
+    - "{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}E:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}:{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f']\
+      \ | random }}{{ ['1','2','3','4','5','6','7','8','9','0','a','b','c','d','e','f'] | random }}"
+  when: macprefix.content is not defined
+
+- name: "prereqs : alpine : save it for next time"
+  ansible.builtin.template:
+    src: kvm.macprefix.j2
+    dest: /root/kvm_macprefix_donotdelete
+    mode: 0600
+  when: macprefix.content is not defined
+
+- name: "prereqs : alpine : decode mac prefix"
+  ansible.builtin.set_fact:
+    random_mac_prefix: "{{ macprefix.content | b64decode }}"
+  when: macprefix.content is defined

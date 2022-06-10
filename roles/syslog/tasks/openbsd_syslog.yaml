@@ -1,0 +1,9 @@
+---
+- name: "obsd : setup syslog.conf"
+  ansible.builtin.template:
+    src: syslog.conf.j2
+    dest: /etc/syslog.conf
+    mode: 0644
+  notify: syslogd_restart
+  # this is effectively all roles that have a syslog dep
+  when: net.dns is defined or net.dhcp is defined or web.relay is defined

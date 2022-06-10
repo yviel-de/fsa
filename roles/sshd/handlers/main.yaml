@@ -1,0 +1,15 @@
+---
+- name: sshd_syntax
+  ansible.builtin.command: sshd -T
+
+- name: sshd_restart
+  ansible.builtin.service:
+    name: sshd
+    state: restarted
+    enabled: true
+
+- name: sshguard_restart
+  ansible.builtin.service:
+    name: sshguard
+    state: restarted
+    enabled: true
