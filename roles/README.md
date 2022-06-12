@@ -208,12 +208,12 @@ net:
 
 apps:
   gitea:
-	# gitea used as an example application
-	# SSL is terminated by the LB in this scenario
-	config:
-	  - section:
-		option: APP_NAME
-		value: My Gitea Server
+    # gitea used as an example application
+    # SSL is terminated by the LB in this scenario
+    config:
+      - section:
+        option: APP_NAME
+        value: My Gitea Server
 ```
 ```yaml
 # my_vpn_server
@@ -228,10 +228,10 @@ net:
     iface: eth0
     # vpn-internal ip
     addr: 172.16.0.1
-	# here too low keepalive
-	keepalive: 1
-	# and autorestart on fail
-	persist: true
+    # here too low keepalive
+    keepalive: 1
+    # and autorestart on fail
+    persist: true
     peers:
     # this is our local client
       - name: mylocalserver
@@ -261,14 +261,14 @@ web:
         port: 8080
         # required for tls. only this will be routed through
         domains:
-	      - gitea.mydomain.net
+          - gitea.mydomain.net
 	    check:
           # health-check the backend before sending traffic to it
-	      type: http
-	      # path to check
-	      path: /favicon.ico
-	      # return code to expect
-	      code: 200
+          type: http
+          # path to check
+          path: /favicon.ico
+          # return code to expect
+          code: 200
 ```
 
 ## LAMP Stack
@@ -326,7 +326,7 @@ Automatically create virtual machines, and install an OS on them.
  - [install](install/)
 
 #### Configuration
-```
+```yaml
 virt:
   # the interface our VMs will be bound to
   bridge: eth0
