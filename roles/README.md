@@ -262,7 +262,7 @@ web:
         # required for tls. only this will be routed through
         domains:
           - gitea.mydomain.net
-	    check:
+        check:
           # health-check the backend before sending traffic to it
           type: http
           # path to check
