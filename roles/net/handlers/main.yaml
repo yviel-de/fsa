@@ -8,7 +8,7 @@
   loop: "{{ net_virt_ifaces.results | selectattr('changed', 'eq', 'true') | map(attribute='item') }}"
 
 - name: sysctl_forwarding
-  ansible.builtin.command: /usr/sbin/sysctl net.inet.ip.forwarding=1
+  ansible.builtin.shell: sysctl net.inet.ip.forwarding=1 || sysctl net.inet.ip.forwarding=1
 
 - name: dhcpleased_restart
   ansible.builtin.service:

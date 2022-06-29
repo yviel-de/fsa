@@ -31,4 +31,4 @@
   notify:
     - sshd_syntax
     - sshd_restart
-  when: base.sshd.tune | default(true)
+  when: base.sshd.tune | default(false)

@@ -36,3 +36,23 @@ domain {{ site.name }} {
 {% endfor %}
 {% endif %}
 
+{% if web.relay is defined %}
+{% for frontend in web.relay.frontends %}
+{% for backend in web.relay.backends %}
+{% if frontend.name == backend.origin and frontend.tls is defined %}
+{% for domain in backend.domains %}
+domain {{ domain }} {
+        domain key "/etc/ssl/private/{{ domain }}.key"
+        domain certificate "/etc/ssl/{{ domain }}.crt"
+        domain full chain certificate "/etc/ssl/{{ domain }}.fullchain.pem"
+{% if frontend.tls == 'dev' %}
+        sign with letsencrypt-staging
+{% elif frontend.tls == 'prod' %}
+        sign with letsencrypt
+{% endif %}
+}
+{% endfor %}
+{% endif %}
+{% endfor %}
+{% endfor %}
+{% endif %}

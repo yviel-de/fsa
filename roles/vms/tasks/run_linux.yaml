@@ -17,7 +17,7 @@
   changed_when: vmcreate.stdout == 'changed'
 
 - name: "run : linux : set up autostart"
-  ansible.builtin.command: virsh autostart {{ item.name }}
+  ansible.builtin.shell: virsh autostart {{ item.name }}; virsh start {{ item.name }}
   when: item.autostart | default(true)
   failed_when: false
   changed_when: false

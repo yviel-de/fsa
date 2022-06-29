@@ -5,8 +5,9 @@
 # values. Options without defaults are commented out.
 
 #### REQUIRED CONFIGURATION ####
+{% if ansible_facts['os_family']|lower == 'openbsd' %}
+
 # Full path to backend executable (required, no default)
-#BACKEND="/usr/local/libexec/sshg-fw-iptables"
 BACKEND="/usr/local/libexec/sshg-fw-pf"
 
 # Space-separated list of log files to monitor. (optional, no default)
@@ -15,6 +16,11 @@ BACKEND="/usr/local/libexec/sshg-fw-pf"
 FILES="/var/log/authlog /var/log/maillog"
 {% else %}
 FILES="/var/log/authlog"
+{% endif %}
+
+{% elif ansible_facts['os_family']|lower == 'alpine' %}
+BACKEND="/usr/libexec/sshg-fw-iptables"
+FILES="/var/log/messages"
 {% endif %}
 
 # Shell command that provides logs on standard output. (optional, no default)

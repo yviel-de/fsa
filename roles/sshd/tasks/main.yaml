@@ -1,8 +1,8 @@
 ---
 - name: run sshd
-  include_tasks: openbsd_sshd.yaml
-  when: base.sshd is defined and ansible_facts['os_family']|lower == 'openbsd'
+  include_tasks: generic_sshd.yaml
+  when: base.sshd is defined and base.sshd.enabled | default(true)
 
 - name: run sshguard
-  include_tasks: openbsd_sshguard.yaml
-  when: base.ssh.guard | default(false) and ansible_facts['os_family']|lower == 'openbsd'
+  include_tasks: generic_sshguard.yaml
+  when: base.sshd.guard | default(false)

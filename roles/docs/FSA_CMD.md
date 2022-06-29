@@ -26,7 +26,7 @@ This in turn means it can be `alias`ed without any elevated permissions: `alias 
 -p [--playbook] myfile.yaml # runs an existing ansible playbook file
 -g [--genpass] mypassword   # generate passwords (if none specified) and pwd hashes
 -u [--updates]              # perform just system and package updates
--f [--finder]               # run the ethernet fact-finder
+-f [--finder] myhost        # run the ethernet fact-finder on a machine
 -v [--verbose]              # show more detailed information
 -h [--help]                 # display this information
 ```

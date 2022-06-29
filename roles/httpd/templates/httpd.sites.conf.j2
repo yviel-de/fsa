@@ -7,16 +7,16 @@ server "{{ item.name }}" {
 {% endfor %}
 {% endif %}
 {% if item.tls is defined %}
-    listen on {{ item.listen | default('all') }} port 443
+    listen on {{ item.listen | default('*') }} port 443
 {% else %}
-    listen on {{ item.listen | default('all') }} port 80
+    listen on {{ item.listen | default('*') }} port 80
     location "/.well-known/acme-challenge/*" {
         root "/acme"
         request strip 2
     }
 {% endif %}
 {% if item.php | default(false) %}
-    location "/*.php" {
+    location "/*.php*" {
         fastcgi socket "/run/php-fpm.sock"
     }
 {% endif %}
@@ -32,7 +32,7 @@ server "{{ item.name }}" {
 {% if item.root is defined %}
 {# special case for webdav \#}
 {% if apps.webdav.site == item.name %}
-    root "{{ item.root }}/baikal"
+    root "{{ item.root }}/baikal/html"
 {% else %}
     root "{{ item.root }}"
 {% endif %}

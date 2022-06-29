@@ -30,7 +30,7 @@
 - name: "apps : dav : take live"
   ansible.builtin.copy:
     src: "/tmp/baikal/"
-    dest: "/var/www{{ davsite.root }}"
+    dest: "/var/www{{ davsite.root }}/baikal"
     remote_src: true
   when: not davinstalled.stat.exists
 

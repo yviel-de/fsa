@@ -2,3 +2,7 @@
 - name: "obsd : run base"
   include_tasks: openbsd_base.yaml
   when: base is defined and ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : run base"
+  include_tasks: alpine_base.yaml
+  when: base is defined and ansible_facts['os_family']|lower == 'alpine'

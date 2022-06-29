@@ -27,9 +27,11 @@ net:
     - name: eth0
 ```
 
-#### Static Configuration
+#### Static Configuration with gateway
 ```yaml
 net:
+  routes:
+    - default 10.0.0.123
   ifaces:
     - name: eth0
       addr: 10.0.0.1

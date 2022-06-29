@@ -1,5 +1,5 @@
 ---
 - name: "openbsd : set up dhcp"
   include_tasks: openbsd_dhcpd.yaml
-  when: ( net.ifaces is defined and net.ifaces | selectattr('dhcp', 'defined') | length > 0 ) or ( virt is defined and virt.vms|selectattr('install',
+  when: ( net.ifaces is defined and net.ifaces | selectattr('dhcp', 'defined') | length > 0 ) or ( virt.vms is defined and virt.vms|selectattr('install',
     'defined')|length > 0 ) and ansible_facts['os_family']|lower == 'openbsd'

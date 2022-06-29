@@ -1,7 +1,9 @@
 ---
 - name: "alpine : libvirt : install packages"
   community.general.apk:
-    name: libvirt-daemon,qemu-img,qemu-system-{{ arch }},qemu-modules,openrc,ovmf
+    name: libvirt-daemon,qemu-img,qemu-system-{{ ansible_facts.machine }},qemu-modules,openrc,ovmf
+    state: present
+    update_cache: yes
 
 - name: "alpine : libvirt : enable uefi"
   ansible.builtin.lineinfile:
@@ -11,6 +13,21 @@
     state: present
   notify:
     - kvm_reload
+
+#- name: "alpine : libvirt : enable module"
+#  community.general.modprobe:
+#    name: kvm
+#    state: present
+#  when: ansible_facts.machine != 'aarch64'
+#  notify:
+#    - kvm_reload
+#
+#- name: "alpine : libvirt : also on boot"
+#  ansible.builtin.lineinfile:
+#    path: /etc/modules
+#    line: "kvm"
+#    state: present
+#  when: ansible_facts.machine != 'aarch64'
 
 - name: "alpine : libvirt : make sure is running"
   ansible.builtin.service:

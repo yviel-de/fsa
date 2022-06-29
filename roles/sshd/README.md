@@ -18,10 +18,10 @@ The role lives under the `base` key:
 ```yaml
 base:
   sshd:
-    # disable sshguard
-    guard: false
-    # disable EC algos
-    tune: false
+    # enable sshguard
+    guard: true
+    # enable EC algos
+    tune: true
 ```
 
 ### Reference

@@ -141,7 +141,8 @@ function parse_args {
                 ;;
             -f|--finder)
                 finderonly=true
-                shift
+                finderlimit="$2"
+                shift 2
                 ;;
             -h|--help)
                 helponly=true
@@ -154,6 +155,10 @@ function parse_args {
             -p|--playbook)
                 playbook="$2"
                 shift 2
+                ;;
+            --debug)
+                debug=true
+                shift
                 ;;
             *)
                 echo "Unknown argument: $1"
@@ -179,6 +184,7 @@ function parse_args {
 -u [--updates]: perform only updates
 -f [--finder]: run the fact-finder
 -v [--verbose]: show detailed information about proceedings
+--debug: show super-detailed information
 -h [--help]: display this information
 EOF
         exit 0
@@ -190,6 +196,7 @@ EOF
 
     elif [ "$finderonly" == "true" ]; then
         roleslist="fsa_finder"
+        limit="$finderlimit"
         build_playbook
 
     elif ! [ -z "$playbook" ]; then
@@ -322,7 +329,9 @@ function exec_play {
     if ! [ -z "$tagslist" ]; then
         args="$args -t $tagslist"
     fi
-    if [ "$verbose" == "true" ]; then
+    if [ "$debug" == "true" ]; then
+        args="$args -vvv"
+    elif [ "$verbose" == "true" ]; then
         args="$args -v --diff"
     fi
     if [ "$askpass" == "true" ]; then

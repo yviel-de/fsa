@@ -1,3 +1,5 @@
 ---
 dependencies:
   - role: virt
+  - role: isos
+  - role: install

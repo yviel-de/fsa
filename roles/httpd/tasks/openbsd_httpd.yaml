@@ -42,7 +42,7 @@
     state: directory
     owner: root
     group: daemon
-    mode: 0640
+    mode: 0755
   when: web.sites is defined and item.root is defined
   loop: "{{ web.sites }}"
   notify:

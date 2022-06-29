@@ -43,9 +43,13 @@ table <{{ backend.name }}> { {{ backend.targets | join(' ') }} }
 {% for backend in web.relay.backends %}
 {% if backend.domains is defined %}
 {% for domain in backend.domains %}
+{% if backend.sources is defined %}
 {% for source in backend.sources %}
         pass request quick from {{ source }} header "Host" value "{{ domain }}" forward to <{{ backend.name }}>
 {% endfor %}
+{% else %}
+        pass request quick header "Host" value "{{ domain }}" forward to <{{ backend.name }}>
+{% endif %}
 {% endfor %}
 {% endif %}
 {% endfor %}

@@ -12,7 +12,22 @@
     mode: 0600
   register: netchange
 
-# these used to be in virt, but there's issues with alpine network config bridge thingie, maybe this is why
+- name: "alpine : enable routing"
+  ansible.builtin.lineinfile:
+    path: /etc/sysctl.conf
+    create: true
+    mode: 0600
+    line: net.ipv4.conf.all.forwarding=1
+  when: net.routing |default(false)
+  notify:
+    - sysctl_forwarding
+
+- name: "alpine : enable vlan"
+  community.general.apk:
+    name: vlan
+    state: present
+  when: net.ifaces | selectattr('vlanid', 'defined') | length > 0
+
 - name: "alpine : net : load kernel modules"
   community.general.modprobe:
     name: "{{ item }}"

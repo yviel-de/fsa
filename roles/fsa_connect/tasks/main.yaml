@@ -11,9 +11,9 @@
 
 - name: set connection facts
   ansible.builtin.set_fact:
-    ansible_host: "{{ fsa.addr | default(target) }}"
-    ansible_port: "{{ fsa.port | default('22') }}"
-    ansible_become: "{{ true if fsa.user | default(lookup('pipe', 'whoami')) != 'root' else false }}"
+    ansible_host: "{{ hostvars[target][fsa][addr] | default(target) }}"
+    ansible_port: "{{ hostvars[target][fsa][port] | default('22') }}"
+    ansible_become: "{{ true if hostvars[target][fsa][user] | default(lookup('pipe', 'whoami')) != 'root' else false }}"
     ansible_become_method: "{{ 'doas' if 'OpenBSD' in uname.stdout else 'sudo' }}"
   changed_when: false
   delegate_to: "{{ target }}"

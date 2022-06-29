@@ -1,0 +1,26 @@
+---
+- name: "sshguard : obsd : install the package"
+  community.general.openbsd_pkg:
+    name: sshguard
+    state: present
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "sshguard : alpine : install the package"
+  community.general.apk:
+    name: sshguard
+    state: present
+  when: ansible_facts['os_family']|lower == 'alpine'
+
+- name: "sshguard : template the config"
+  ansible.builtin.template:
+    src: sshguard.conf.j2
+    dest: /etc/sshguard.conf
+    mode: 0600
+  notify:
+    - sshguard_restart
+
+- name: "sshguard : alpine : create chain, enable on boot"
+  ansible.builtin.shell: iptables -A INPUT -j sshguard; rc-update add iptables boot
+  when: ansible_facts['os_family']|lower == 'alpine'
+  changed_when: false
+  failed_when: false

@@ -3,12 +3,12 @@ iface lo inet loopback
 
 {% for iface in net.ifaces %}
 {% if virt is defined and virt.bridge == iface.name %}
-{% set name = 'br0' %}
+{% set myname = 'br0' %}
 {% else %}
-{% set name = iface.name %}
+{% set myname = iface.name %}
 {% endif %}
-auto {{ name }}
-iface {{ name }} inet
+auto {{ myname }}
+iface {{ myname }} inet
 {%- if iface.addr is not defined or iface.netmask is not defined %}
  dhcp
 {% else %}
@@ -27,7 +27,10 @@ iface {{ name }} inet
 {% endif %}
 {% endfor %}
 {% endif %}
-{% if name == 'br0' %}
+{% if iface.vlanid is defined %}
+    vlan-raw-device {{ iface.parent }}
+{% endif %}
+{% if myname == 'br0' %}
     bridge_ports {{ iface.name }}
     bridge_stp 0
 {% endif %}

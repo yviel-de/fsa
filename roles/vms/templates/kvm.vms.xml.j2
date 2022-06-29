@@ -9,7 +9,7 @@
 {% endif %}
   <vcpu placement='static'>1</vcpu>
   <os>
-    <type arch='{{ arch }}' machine='virt-6.1'>hvm</type>
+    <type arch='{{ ansible_facts.machine }}' machine='virt-6.1'>hvm</type>
     <loader readonly='yes' type='pflash'>/usr/share/qemu/edk2-aarch64-code.fd</loader>
     <nvram template='/usr/share/qemu/edk2-arm-vars.fd'>/var/lib/libvirt/qemu/nvram/{{ item.name }}.fd</nvram>
 {% if not arch == 'aarch64' or (arch == 'aarch64' and (item.iso is defined and not item.iso == 'openbsd')) %}
@@ -26,7 +26,7 @@
   <on_reboot>restart</on_reboot>
   <on_crash>restart</on_crash>
   <devices>
-    <emulator>/usr/bin/qemu-system-{{ arch }}</emulator>
+    <emulator>/usr/bin/qemu-system-{{ ansible_facts.machine }}</emulator>
 {% if item.iso is defined %}
 {# special case: obsd on aarch64 is an img file that needs mounting as disk \#}
 {% if arch == 'aarch64' and item.iso == 'openbsd' %}

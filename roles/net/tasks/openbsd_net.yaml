@@ -16,7 +16,7 @@
     create: true
     mode: 0600
     line: net.inet.ip.forwarding=1
-  when: net.routing is defined and net.routing
+  when: net.routing |default(false)
   notify:
     - sysctl_forwarding
 

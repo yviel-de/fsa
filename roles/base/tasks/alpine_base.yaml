@@ -1,0 +1,19 @@
+---
+- name: "alpine : set hostname"
+  ansible.builtin.lineinfile:
+    path: /etc/hostname
+    regexp: ^
+    line: "{{ base.name }}"
+  when: base.name is defined
+
+- name: "alpine : also for current session"
+  ansible.builtin.command: hostname {{ base.name }}
+  when: base.name is defined
+  changed_when: false
+
+# TODO: sound
+
+- name: "alpine : template motd" # noqa risky-file-permissions
+  ansible.builtin.template:
+    src: motd.j2
+    dest: /etc/motd

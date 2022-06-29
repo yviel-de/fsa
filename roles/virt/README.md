@@ -36,7 +36,7 @@ virt:
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
 |`virt`|Parent|No|(none)|Activates `virt`|
-|`virt.bridge`|String|Yes|(none)|Interface to bind VMs to|[virt]
+|`virt.bridge`|String|Yes|(none)|Interface to bind VMs to (must be defined in `net.ifaces`)|[virt]|
 |`virt.vms`|Dict|No|(none)|Activates [vms](../vms)|
 
 ([Full Reference here](docs/REFERENCE.md))
