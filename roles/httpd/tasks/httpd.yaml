@@ -1,0 +1,13 @@
+---
+# apart from itself, httpd is required for:
+# - letsencrypt
+# - virtualization
+# - webdav app
+# and unfortunately, letsencrypt itself also has multiple triggers
+- name: "openbsd : httpd"
+  include_tasks: openbsd_httpd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : nginx"
+  include_tasks: alpine_nginx.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

@@ -1,0 +1,74 @@
+---
+machines:
+  - name: client-vpn
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          # leave 1 dhcp interface for vagrant
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.32
+            netmask: 255.255.255.0
+          - name: vlan0
+            vlanid: 10
+            parent: vio1
+        routes:
+          - "default 172.17.123.34"
+#        vpn:
+#          type: wireguard
+#          iface: vlan0
+#          addr: 10.20.30.40
+#          peer:
+#            name: dhcp-dns-fw
+#            addr: 172.17.123.34
+#            keepalive: 1
+  - name: dhcp-dns-fw
+    box: obsd72
+    vars:
+      net:
+        routing: true
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.33
+            netmask: 255.255.255.0
+          - name: vlan0
+            addr: 172.17.123.34
+            netmask: 255.255.255.0
+            vlanid: 10
+            parent: vio1
+            dhcp:
+              - range: 172.17.123.12 172.17.123.12
+                routers: 172.17.123.34
+                dnssrv: 172.17.123.34
+                lease_time: 60
+        dns:
+          filter:
+            whitelist:
+              - googleadservices.com
+          listen:
+            - 0.0.0.0
+          access:
+            - 172.17.123.12 refuse
+          localdata:
+            - dnsentry.fsa.local. IN A 10.20.30.40
+        fw:
+          rules:
+            - act: block
+              dir: out
+              from: any
+              to: 93.184.216.34
+#        vpn:
+#          type: wireguard
+#          iface: vlan0
+#          addr: 10.20.30.42
+#          peers:
+#            - name: client-vpn
+#              addr: 10.20.30.40
+#              keepalive: 1
+verifier: testinfra
+scenario:
+  - converge
+  - idempotence
+  - verify

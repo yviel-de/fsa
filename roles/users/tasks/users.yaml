@@ -1,0 +1,4 @@
+---
+- name: "obsd : set up users"
+  include_tasks: openbsd_users.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

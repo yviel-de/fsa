@@ -2,9 +2,11 @@
 - name: "openbsd : configure interfaces"
   ansible.builtin.template:
     src: hostname.if.j2
-    dest: /etc/hostname.{{ item.name }}
+    dest: /etc/hostname.{{ iface.name }}
     mode: 0600
   loop: "{{ net.ifaces }}"
+  loop_control:
+    loop_var: iface
   notify:
     - netstart
     - dhcpleased_restart
@@ -31,7 +33,7 @@
 - name: "openbsd : set up virt bridges"
   ansible.builtin.template:
     src: hostname.virt.j2
-    dest: /etc/hostname.{{ item }}
+    dest: /etc/hostname.{{ bridge }}
     mode: 0600
   register: net_virt_ifaces
   loop:
@@ -40,6 +42,8 @@
     - vether1
     - bridge1
     - bridge2
+  loop_control:
+    loop_var: bridge
   when: virt is defined
   notify: netstart_virt
 

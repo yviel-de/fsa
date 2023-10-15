@@ -1,7 +1,7 @@
-# `mysql` - yviel's FSA v0.2.0
-This role sets up a mysql/mariadb server, creates databases and imports data.
+# `mysql` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Minimal Example](#minimal-example)
@@ -9,6 +9,13 @@ This role sets up a mysql/mariadb server, creates databases and imports data.
     - [Import from Local & Remote](#Import-from-local-and-remote)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up a mysql or mariadb server and allows for import of databases.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 This role calls no other roles.
@@ -37,9 +44,9 @@ apps:
       - name: mysqluser
         # pass in cleartext
         pass: mysqlpass
-        from: %
+        from: "%"
         # permit on this db
-        on: mydatabase
+        ondb: mydatabase
 ```
 
 #### Import from Local and Remote
@@ -73,20 +80,20 @@ apps:
 |`apps.mysql.config.section`|String|Yes|(none)|Section of the ini file|
 |`apps.mysql.config.option`|String|Yes|(none)|Config key to set|
 |`apps.mysql.config.value`|String|Yes|(none)|Config value to set|
-|`apps.mysql.dbs`|Dict|Yes|(none)|Databases to set up|
+|`apps.mysql.dbs`|List|Yes|(none)|Databases to set up|
 |`apps.mysql.users`|Dict|No|(none)|Users to set up|
 |`apps.mysql.users.name`|String|Yes|(none)|Username to create|
 |`apps.mysql.users.pass`|String|Yes|(none)|Password in cleartext|
-|`apps.mysql.users.from`|String|No|`127.0.0.1`|User origin|
-|`apps.mysql.users.on`|String|No|(none)|Existing `db` to permit the user on|
+|`apps.mysql.users.from`|String|No|`localhost`|User origin|
+|`apps.mysql.users.ondb`|String|Yes|(none)|Existing `db` to permit the user on|
 |`apps.mysql.imports`|Dict|No|(none)|Any SQL imports to perform|
-|`apps.mysql.imports.src`|String|Yes|(none)|Path to file, or name of remote DB|
+|`apps.mysql.imports.src`|String|Yes|(none)|Path to local file, or name of remote DB|
 |`apps.mysql.imports.dest`|String|Yes|(none)|Name of existing `db` to import into|
 |`apps.mysql.imports.host`|String|if remote `src`|(none)|Address of the remote MySQL host|
 |`apps.mysql.imports.user`|String|if remote `src`|(none)|Remote SQL user to use|
 |`apps.mysql.imports.pass`|String|if remote `src`|(none)|Password for the remote SQL user, in cleartext|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [net](../net)

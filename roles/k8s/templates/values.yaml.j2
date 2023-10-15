@@ -1,0 +1,5 @@
+{% if item.setvalues is defined %}
+{{ item.setvalues | to_nice_yaml }}
+{% else %}
+dummy: dummy
+{% endif %}

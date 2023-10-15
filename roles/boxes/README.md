@@ -1,11 +1,19 @@
-# `boxes` - yviel's FSA v0.2.0
-This role configures dovecot for user mailboxes. Authentication is hardcoded.
+# `boxes` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up mailboxes to use with email clients such as Thunderbird or K9-Mail.
+
+They are made available via IMAP+STARTTLS on Port 587.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -27,10 +35,11 @@ mail:
       pass: <crypted value>
 ```
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### Reference
-|Key|Type|Required|Example Value|Default Value|Action|
+|Key|Type|Required|Default Value|Action|
 |--|--|--|--|--|--|
-|`mail.boxes.addr`|String|Yes|`user@example.com`|(none)|Mailbox to create|
-|`mail.boxes.pass`|String|Yes|(long hash)|(none)|Password, use `fsa -g`|
+|`mail.boxes`|Dict|No|(none)|Mailboxes to set up|
+|`mail.boxes.addr`|String|Yes|(none)|Email address to set up|
+|`mail.boxes.pass`|String|Yes|(none)|Password hash, use `fsa -g` to generate|

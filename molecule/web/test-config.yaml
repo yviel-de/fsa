@@ -1,0 +1,45 @@
+---
+machines:
+  - name: httphost
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.33
+            netmask: 255.255.255.0
+      web:
+        httpd: true
+        sites:
+          - name: 127.0.0.1
+            root: /htdocs/bgplg
+            listen: all
+            port: 8080
+  - name: relayhost
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.34
+            netmask: 255.255.255.0
+      web:
+        relay:
+          frontends:
+            - name: relayfrontend
+              addr: 0.0.0.0
+              type: http
+              port: 80
+          backends:
+            - name: httpbackend
+              origin: relayfrontend
+              targets:
+                - 172.16.123.33
+              port: 8080
+verifier: testinfra
+scenario:
+  - converge
+  - idempotence
+  - verify

@@ -1,7 +1,7 @@
-# `fw` - yviel's FSA v0.2.0
-This role sets up a firewall using pf.
+/ `fw` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Minimal Example](#minimal-example)
@@ -9,6 +9,14 @@ This role sets up a firewall using pf.
     - [NAT Example](#nat-example)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up firewalling via `pf`. Rules are created in order.
+
+In addition to the usual features it can also be used to block known bad actors.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -30,14 +38,14 @@ net:
 ```
 
 #### Block Malicious Actors
-```
+```yaml
 net:
   # this blocks malicious actors as identified by spamhaus et al
   public: true
 ```
 
 #### NAT Example
-```
+```yaml
 net:
   fw:
     rules:
@@ -54,7 +62,7 @@ net:
 |--|--|--|--|--|
 |`net.public`|Bool|No|`false`|Block malicious hosts as determined by spamhaus et al|
 |`net.fw.rules`|Dict|Yes|(none)|Firewall rules to set up|
-|`net.fw.rules.act`|String|Yes|(none)|Action, `block`, `pass` or `mark`|
+|`net.fw.rules.act`|String|Yes|(none)|Action, `block` or `pass`|
 |`net.fw.rules.dir`|String|Yes|(none)|Direction, `in` or `out`|
 |`net.fw.rules.iface`|String|No|(none)|Interface to match|
 |`net.fw.rules.proto`|String|No|(none)|Protocol to match|
@@ -65,7 +73,7 @@ net:
 |`net.fw.rules.rdrport`|Int|if `rdrto`|(none)|Port to redirect to|
 |`net.fw.rules.natto`|String|No|(none)|Address or interface to NAT to|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [net](../net/)

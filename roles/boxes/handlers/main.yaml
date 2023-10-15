@@ -1,6 +1,7 @@
 ---
 - name: dovecot_syntax
   ansible.builtin.command: doveconf
+  changed_when: false
 
 - name: dovecot_restart
   ansible.builtin.service:

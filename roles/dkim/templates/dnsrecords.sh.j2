@@ -1,0 +1,18 @@
+#!/bin/sh
+#
+# build dns records for user
+
+for i in $(ls /etc/mail/dkim/*_pub.txt); do
+    key=$(cat $i | grep -v KEY | tr -d "\n")
+    name=$(echo $i | cut -d _ -f1 | rev | cut -d / -f1 | rev)
+    echo ""
+    echo "--------------------------------\nDNS RECORDS REQUIRED FOR $name:"
+    echo "- MX:          $name - 10 {{ base.name | default(ansible_fqdn) }}"
+    echo "- SPF (TXT):   $name - \"v=spf1 mx -all\""
+    echo "- DKIM (TXT):  {{ ansible_hostname }}._domainkey.$name - \"v=DKIM1;k=rsa;p=$key;\""
+    echo "- DMARC (TXT): _dmarc.$name - \"v=DMARC1;p=reject;aspf=s;adkim=s;\""
+    echo "WARN: Not explicitly listed, but also required, is the A-Record with {{ base.name | default(ansible_fqdn) }} that has to match the server IP."
+    echo "WARN: A PTR-Record, sometimes called Reverse DNS, is required and must match {{ base.name | default(ansible_fqdn) }}"
+    echo ""
+    echo ""
+done

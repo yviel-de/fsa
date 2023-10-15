@@ -1,0 +1,61 @@
+---
+machines:
+  - name: gitea-mysql
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.16
+            netmask: 255.255.255.0
+      apps:
+        gitea:
+          name: my-beautiful-gitea
+          url: "http://my-gitea.com/"
+          config:
+            - section: server
+              option: HTTP_ADDR
+              value: 0.0.0.0
+        mysql:
+          config:
+            - section: server
+              option: bind-address
+              value: 0.0.0.0
+          dbs:
+            - mydatabase
+          users:
+            - name: mysqluser
+              pass: mysqlpass
+              from: 172.16.123.17
+              ondb: mydatabase
+          imports:
+            - src: ./mydbdump.sql
+              dest: mydatabase
+  - name: webdav-mpd
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.17
+            netmask: 255.255.255.0
+      base:
+        sound: true
+      apps:
+        webdav:
+          host: 0.0.0.0
+          port: 5232
+          users:
+            - name: user1
+              pass: pass1
+        mpd:
+          listen: 127.0.0.1
+          port: 6601
+          webradio: true
+verifier: testinfra
+scenario:
+  - converge
+  - idempotence
+  - verify

@@ -1,0 +1,4 @@
+---
+- name: "openbsd : smtpd"
+  include_tasks: openbsd_smtpd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

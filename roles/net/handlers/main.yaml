@@ -1,7 +1,9 @@
 ---
 - name: netstart
-  ansible.builtin.command: sh /etc/netstart {{ item.name }}
+  ansible.builtin.command: sh /etc/netstart {{ iface.name }}
   loop: "{{ net.ifaces }}"
+  loop_control:
+    loop_var: iface
 
 - name: netstart_virt
   ansible.builtin.command: sh /etc/netstart {{ item }}

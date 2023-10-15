@@ -1,62 +1,115 @@
-# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+{% set my = namespace(port='80') %}
+{% if site.port is defined %}
+{% set my.port = site.port %}
+{% elif web.relay.frontends is defined %}
+{% for frontend in web.relay.frontends %}
+# {{ frontend }}
+{% if frontend.port == 80 %}
+{% set my.port = '8080' %}
+{% endif %}
+{% endfor %}
+{% endif %}
 
-server "{{ item.name }}" {
-{% if item.alts is defined %}
-{% for alt in item.alts %}
+server "{{ site.name }}" {
+{% if site.alts is defined %}
+{% for alt in site.alts %}
     alias {{ alt }}
 {% endfor %}
 {% endif %}
-{% if item.tls is defined %}
-    listen on {{ item.listen | default('*') }} port 443
-{% else %}
-    listen on {{ item.listen | default('*') }} port 80
+    listen on {{ site.listen | default('*') }} port {{ my.port }}
     location "/.well-known/acme-challenge/*" {
         root "/acme"
         request strip 2
     }
+{% if httpd.auth is defined and site.auth | default(false) %}
+    authenticate with "/.auth"
 {% endif %}
-{% if item.php | default(false) %}
+    log style forwarded
+    log access "{{ site.name }}_access.log"
+    log error "{{ site.name }}_error.log"
+
+    tcp { nodelay }
+
+{# here a big switch with the php-apps specific config. \#}
+{% if apps.webdav.site is defined and site.name == apps.webdav.site %}
+    root "{{ site.root }}/baikal/html"
+    directory index "index.php"
+    location "/*.php*" {
+        fastcgi socket "/run/php-fpm.sock"
+    }
+    # set max upload size to 513M (in bytes)
+    connection max request body 537919488
+    location "/admin/" {
+        authenticate with "{{ site.root }}/.auth"
+        directory index "index.php"
+    }
+    location "{{ site.root }}/html/admin/" {
+        directory index "index.php"
+        authenticate with "{{ site.root }}/.auth"
+    }
+    location "{{ site.root }}/html/admin/install/" {
+        directory index "index.php"
+        authenticate with "{{ site.root }}/.auth"
+    }
+
+{% elif apps.owncloud.site is defined and site.name == apps.owncloud.site %}
+    root "{{ site.root }}/nextcloud/"
+    directory index "index.php"
+    # Set max upload size to 513M (in bytes)
+    connection max request body 537919488
+    connection max requests 1000
+    connection request timeout 3600
+    connection timeout 3600
+
+    block drop
+    location "/config/*" {
+        block drop
+        directory index "index.php"
+    }
+    location "/data/*" {
+        block drop
+        directory index "index.php"
+    }
+    location "/*.php*" {
+            fastcgi socket "/run/php-fpm.sock"
+        pass
+    }
+    location "/apps/*" {
+        directory index "index.php"
+        pass
+    }
+    location "/core/*" {
+        directory index "index.php"
+        pass
+    }
+    location "/.well-known/carddav" {
+        block return 301 "https://$SERVER_NAME/remote.php/dav"
+    }
+    location "/.well-known/caldav" {
+        block return 301 "https://$SERVER_NAME/remote.php/dav"
+    }
+    location "/.well-known/webfinger" {
+        block return 301 "https://$SERVER_NAME/public.php?service=webfinger"
+    }
+    location match "/oc[ms]%-provider/*" {
+        directory index "index.php"
+        pass
+    }
+
+{# manual, non-app configuration here \#}
+{% else %}
+{% if site.php | default(false) %}
     location "/*.php*" {
         fastcgi socket "/run/php-fpm.sock"
     }
 {% endif %}
-{% if item.index is defined %}
+{% if site.index is defined %}
     directory index "{{ index }}"
-{% elif item.php | default(false) %}
+{% elif site.php | default(false) %}
     directory index "index.php"
 {% endif %}
-{% if httpd.auth is defined and item.auth | default(false) %}
-    authenticate with "/.auth"
-{% endif %}
-{# I think this will be the bigass switch for all the apps \#}
-{% if item.root is defined %}
-{# special case for webdav \#}
-{% if apps.webdav.site == item.name %}
-    root "{{ item.root }}/baikal/html"
-{% else %}
-    root "{{ item.root }}"
+{% if site.root is defined %}
+    root "{{ site.root }}"
 {% endif %}
 {% endif %}
-{% if apps.dav is defined and apps.dav.site == item.name %}
-    # set max upload size to 513M (in bytes)
-    connection max request body 537919488
-    location "/admin/" {
-        authenticate with "{{ item.root }}/.auth"
-        directory index "index.php"
-    }
-    root "{{ item.root }}/html"
-    location "{{ item.root }}/html/admin/" {
-        directory index "index.php"
-        authenticate with "{{ item.root }}/.auth"
-    }
-    location "{{ item.root }}/html/admin/install/" {
-        directory index "index.php"
-        authenticate with "{{ item.root }}/.auth"
-    }
-{% endif %}
-    log style forwarded
-    log access "{{ item.name }}_access.log"
-    log error "{{ item.name }}_error.log"
-
-    tcp { nodelay }
 }

@@ -1,0 +1,11 @@
+---
+- name: "alpine : package updates"
+  community.general.apk:
+    available: true
+    update_cache: true
+    upgrade: true
+
+- name: "alpine : sync and reboot"
+  alpine.builtin.shell: sync
+  register: sync
+  notify: alpine_reboot

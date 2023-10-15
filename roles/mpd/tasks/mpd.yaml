@@ -1,0 +1,56 @@
+---
+- name: "mpd : alpine : install the package"
+  community.general.apk:
+    name:
+      - mpd-openrc
+    state: present
+    update_cache: true
+  when: ansible_distribution | lower == 'alpine'
+
+- name: "mpd : openbsd : install the package"
+  community.general.openbsd_pkg:
+    name:
+      - mpd
+    state: present
+  when: ansible_distribution | lower == 'openbsd'
+
+- name: "mpd : template out settings"
+  ansible.builtin.template:
+    src: mpd.conf.j2
+    dest: /etc/mpd.conf
+    mode: 0600
+  notify:
+    - mpd_restart
+
+- name: "mpd : create home if not exists"
+  ansible.builtin.file:
+    path: "{{ apps.mpd.storage|default(mpd.basedir + '/music') }}"
+    state: directory
+    mode: 0750
+    owner: "{{ '_mpd' if ansible_distribution | lower == 'openbsd' else 'mpd' }}"
+    group: "{{ '_mpd' if ansible_distribution | lower == 'openbsd' else 'audio' }}"
+
+#- name: "mpd : create database file if not exists"
+#  ansible.builtin.file:
+#    path: "{{ mpd.basedir + '/database' }}"
+#    state: touch
+#    mode: 0640
+
+- name: "mpd : setup webradios"
+  ansible.builtin.get_url:
+    url: "{{ radio.source }}"
+    dest: "{{ apps.mpd.storage|default(mpd.basedir + '/music') }}/{{ radio.name }}.pls"
+  loop: "{{ mpd.webradios }}"
+  loop_control:
+    loop_var: radio
+  when: apps.mpd.webradio | default(false)
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
+
+- name: "mpd : download other playlists"
+  ansible.builtin.get_url:
+    url: "{{ source.source }}"
+    dest: "{{ apps.mpd.storage|default(mpd.basedir + '/music') }}/{{ source.name }}.pls"
+  loop: "{{ apps.mpd.sources }}"
+  loop_control:
+    loop_var: source
+  when: apps.mpd.sources is defined

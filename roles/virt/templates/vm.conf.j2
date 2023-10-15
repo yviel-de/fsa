@@ -41,6 +41,8 @@ vm "{{ vm.name }}" {
 {% endif %}
 {% if vm.mac is defined %}
         lladdr {{ vm.mac }}
+{% else %}
+        lladdr {{ 'fe:e1:bb' | community.general.random_mac(seed=vm.name) }}
 {% endif %}
     }
 
@@ -48,6 +50,3 @@ vm "{{ vm.name }}" {
 {% endif %}
 {% endfor %}
 {% endif %}
-
-{# unique string for vm autoinstall and molecule to use as an anchor \#}
-# c2567a7dda4f8c1a360f6f2389715c14

@@ -1,6 +1,12 @@
 {% for iface in net.ifaces %}
-{% if iface.addr is defined or iface.netmask is defined %}
-    subnet {{ iface.addr }} netmask {{ iface.netmask }} {
+{% if iface.addr is defined %}
+{% set my = namespace(addr='127.0.0.1') %}
+{% set my.netexpr = iface.addr + '/' + iface.netmask %}
+{% set my.cidrnet = my.netexpr | ansible.utils.ipaddr('network/prefix') %}
+{% set my.addr = my.cidrnet | ansible.utils.ipaddr('network') %}
+{% endif %}
+{% if my.addr is defined and iface.netmask is defined %}
+    subnet {{ my.addr }} netmask {{ iface.netmask }} {
 {% if iface.dhcp is defined %}
 {% for subnet in iface.dhcp %}
 {% if subnet.range is defined %}
@@ -48,12 +54,25 @@
         option domain-name-servers 172.19.24.1;
         max-lease-time 3600;
     }
-{# vmd autoinstall / molecule \#}
-    subnet 100.92.0.1 netmask 255.255.255.0 {
+{# vm autoinstall / molecule \#}
+    subnet 100.92.0.0 netmask 255.255.255.0 {
         range 100.92.0.2 100.92.0.254;
+        deny unknown-clients;
         option domain-name "vmd.staging.local";
         option routers 100.92.0.1;
         option domain-name-servers 100.92.0.1;
+        filename "auto_install";
         max-lease-time 60;
+{% for vm in virt.vms %}
+{% if vm.install is defined or vm.template is defined %}
+        host {{ vm.name }} {
+          hardware ethernet {{ '8a:d8:ad' | community.general.random_mac(seed=vm.name) }};
+          fixed-address 100.92.0.{{ 254 | random(start=2, seed=vm.name) }};
+          filename "auto_install";
+          next-server 100.92.0.1;
+          option host-name "{{ vm.name }}";
+        }
+{% endif %}
+{% endfor %}
     }
 {% endif %}

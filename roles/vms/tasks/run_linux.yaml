@@ -1,20 +1,45 @@
 ---
-- name: "run : linux : template VMs"
+- name: "run : linux : grab existing UUIDs"
+  ansible.builtin.shell: virsh list --all | grep -q {{ item.name }} && virsh dumpxml {{ item.name }} | grep uuid | cut -d '<' -f2 | cut -d '>' -f2
+  register: uuids
+  loop: "{{ virt.vms }}"
+  failed_when: false
+  changed_when: false
+
+- name: "run : linux : template out VM configs"
   ansible.builtin.template:
     src: kvm.vms.xml.j2
     dest: /etc/libvirt/qemu/{{ item.name }}.xml
     mode: 0600
   loop: "{{ virt.vms }}"
-  register: vmchange
-  notify:
-    - kvm_reload
+  register: vmconfig
 
-- name: "run : linux : create VMs"
-  ansible.builtin.shell: set -o pipefail; if ! virsh list --all | awk '{print $2}' | grep -vE 'Name|^$' | grep -q {{ item.name
-    }}; then virsh create /etc/libvirt/qemu/{{ item.name }}.xml; echo changed; fi
-  loop: "{{ virt.vms }}"
-  register: vmcreate
-  changed_when: vmcreate.stdout == 'changed'
+# obsd doesnt shutdown only reboot, so we need to destroy unfortunately
+- name: "run : linux : stop VMs"
+  ansible.builtin.shell: "virsh list | grep {{ item.item.name }} && virsh shutdown {{ item.item.name }} && sleep 15&& virsh destroy --graceful {{ item.item.name }} && sleep 2"
+  loop: "{{ vmconfig.results }}"
+  when: item.item.reboot | default(false) or item.item.install is defined or item.changed
+  failed_when: false
+
+- name: "run : linux : start VMs"
+  ansible.builtin.shell: "virsh define /etc/libvirt/qemu/{{ item.item.name }}.xml; sleep 1; virsh list | grep {{ item.item.name }} || virsh start {{ item.item.name }}"
+  loop: "{{ vmconfig.results }}"
+  when: item.item.install is not defined and ( item.item.reboot | default('false') or item.changed or item|map(attribute='install')|selectattr('template', 'defined')|map(attribute='template')[0]|default(false))
+  failed_when: false
+
+#- name: "run : linux : create VMs"
+#  ansible.builtin.shell: set -o pipefail; if ! virsh list --all | grep -vE 'Name|^$' | grep -q {{ item.name
+#    }}; then virsh define /etc/libvirt/qemu/{{ item.name }}.xml; echo changed; fi
+#  loop: "{{ virt.vms }}"
+#  register: vmcreate
+#  changed_when: vmcreate.stdout == 'changed'
+#
+#- name: "run : linux : create VMs II"
+#  ansible.builtin.shell: set -o pipefail; if ! virsh list | grep -vE 'Name|^$' | grep -q {{ item.name }}; then virsh define /etc/libvirt/qemu/{{ item.name }}.xml; echo changed; fi
+#  when: item.install is defined
+#  loop: "{{ virt.vms }}"
+#  register: vmcreate2
+#  changed_when: vmcreate2.stdout == 'changed'
 
 - name: "run : linux : set up autostart"
   ansible.builtin.shell: virsh autostart {{ item.name }}; virsh start {{ item.name }}

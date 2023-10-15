@@ -10,7 +10,7 @@
   ansible.builtin.template:
     src: dkim_signing.conf.j2
     dest: /etc/rspamd/local.d/dkim_signing.conf
-    mode: 0600
+    mode: "0600"
   notify:
     - rspamd_syntax
     - rspamd_restart
@@ -20,13 +20,12 @@
   ansible.builtin.file:
     path: /etc/mail/dkim/
     state: directory
-    owner: _rspamd
-    group: _dkimsign
-    mode: 0770
+    owner: "{{ '_rspamd' if mail.listen|selectattr('filter', 'eq', 'spam')|length > 0 else '_dkimsign' }}"
+    group: "{{ '_rspamd' if mail.listen|selectattr('filter', 'eq', 'spam')|length > 0 else '_dkimsign' }}"
+    mode: "0770"
 
 - name: "obsd : dkim : generate privkeys"
-  ansible.builtin.shell: if [ ! -f /etc/mail/dkim/{{ item }}.key ]; then openssl genrsa -out /etc/mail/dkim/{{ item }}.key
-    2048 >/dev/null 2>&1 && echo changed; fi
+  ansible.builtin.shell: if [ ! -f /etc/mail/dkim/{{ item }}.key ]; then openssl genrsa -out /etc/mail/dkim/{{ item }}.key 2048 >/dev/null 2>&1 && echo changed; fi
   register: dkimkeys
   changed_when: dkimkeys.stdout == "changed"
   loop: "{{ mail.domains }}"
@@ -35,22 +34,24 @@
     - rspamd_restart
 
 - name: "obsd : dkim : generate pubkeys"
-  ansible.builtin.shell: if [ ! -f /etc/mail/dkim/{{ item }}_pub.txt ]; then openssl rsa -in /etc/mail/dkim/{{ item }}.key
-    -pubout -out /etc/mail/dkim/{{ item }}_pub.txt >/dev/null 2>&1 && echo changed; fi
+  ansible.builtin.shell: if [ ! -f /etc/mail/dkim/{{ item }}_pub.txt ]; then openssl rsa -in /etc/mail/dkim/{{ item }}.key -pubout -out /etc/mail/dkim/{{ item }}_pub.txt
+    >/dev/null 2>&1 && echo changed; fi
   register: dkimpubkeys
   changed_when: dkimpubkeys.stdout == "changed"
   loop: "{{ mail.domains }}"
   notify:
     - dkim_newkeys_echo
 
-- name: "obsd : dkim : build DNS records" # noqa risky-shell-pipe
-  ansible.builtin.shell: 'for i in $(ls /etc/mail/dkim/*_pub.txt); do key=$(cat $i | grep -v KEY | tr -d "\n"); name=$(echo
-    $i | cut -d _ -f1 | rev | cut -d / -f1 | rev); echo -n "--------------------------------\nDNS RECORDS REQUIRED FOR $name:\n-
-    MX:          $name - 10 {{ ansible_fqdn }}\n- SPF (TXT):   $name - \"v=spf1 mx -all\"\n- DKIM (TXT):  {{ ansible_hostname
-    }}._domainkey.$name - \"v=DKIM1;k=rsa;p=$key;\"\n- DMARC (TXT): _dmarc.$name - \"v=DMARC1;p=reject;rua=mailto:dmarc@$name;sp=reject;aspf=s;adkim=s;ri=2592000\"\nWARN:
-    Not explicitly listed, but also required, is the A-Record with {{ ansible_fqdn }} that has to match the server IP.\n\n";
-    done'
+- name: "obsd : dkim : template out script"
+  ansible.builtin.template:
+    src: dnsrecords.sh.j2
+    dest: /tmp/dnsrecords.sh
+    mode: "0600"
+  changed_when: false
+  when: mail.setup | default(true) and dkimpubkeys.results|selectattr('rc', 'eq', 0)
+
+- name: "obsd : dkim : compile DNS records"
+  ansible.builtin.shell: sh /tmp/dnsrecords.sh
   register: dkim_pubs_out
-  when: mail.setup | default(true)
-  notify:
-    - dkim_newkeys_echo
+  when: mail.setup | default(true) and dkimpubkeys.results|selectattr('rc', 'eq', 0)
+  changed_when: false

@@ -1,0 +1,53 @@
+---
+- name: "alpine : libvirt : netsetup : increment counter"
+  ansible.builtin.set_fact:
+    netcounter: "{{ netcounter | int + 1 }}"
+
+- name: "alpine : libvirt : netsetup : check counter"
+  ansible.builtin.fail:
+    msg: "Something's still borked with the net setup..."
+  when: netcounter | int > 10
+
+- name: "run : linux : grab existing UUIDs"
+  ansible.builtin.shell: virsh net-list --all | grep -q {{ item }} && virsh net-dumpxml {{ item }} | grep uuid | cut -d '<' -f2 | cut -d '>' -f2
+  register: uuid
+  failed_when: false
+  changed_when: false
+
+- name: "alpine : libvirt : netsetup : configure {{ item }}"
+  block:
+    - name: "alpine : libvirt : netsetup : template net config"
+      ansible.builtin.template:
+        src: "kvm.{{ item }}.xml.j2"
+        dest: "/etc/libvirt/qemu/networks/{{ item }}.xml"
+        mode: 0600
+      changed_when: false # since qemu adds an ID to it
+
+    - name: "alpine : libvirt : netsetup : create net"
+      ansible.builtin.shell: virsh net-define /etc/libvirt/qemu/networks/{{ item }}.xml >/dev/null 2>&1; echo changed
+      changed_when: false # since qemu adds an ID to it
+
+    # if non-persistant, destroy & create
+    - name: "alpine : libvirt : netsetup : persist net"
+      ansible.builtin.shell: if virsh net-list --all | grep " {{ item }} " | awk '{print $4}' | grep -q no; then virsh net-undefine {{ item }} >/dev/null 2>&1; virsh net-define /etc/libvirt/qemu/networks/{{ item }}.xml >/dev/null 2>&1; echo changed; fi
+      register: netdefine
+      changed_when: netdefine.stdout == 'changed'
+
+    - name: "alpine : libvirt : netsetup : start net"
+      ansible.builtin.shell: if virsh net-list --all | grep " {{ item }} " | awk '{print $2}' | grep -q inactive; then virsh net-start {{ item }} >/dev/null 2>&1; echo changed; fi
+      register: netstart
+      changed_when: netstart.stdout == 'changed'
+
+    - name: "alpine : libvirt : netsetup : autostart net"
+      ansible.builtin.shell: if virsh net-list --all | grep " {{ item }} " | awk '{print $3}' | grep -q no; then virsh net-autostart {{ item }} >/dev/null 2>&1; echo changed; fi
+      register: netautostart
+      changed_when: netautostart.stdout == 'changed'
+
+    - name: "alpine : libvirt : netsetup : failcheck net"
+      ansible.builtin.shell: if virsh net-list --all | grep " {{ item }} " | grep -E -q 'inactive|no|^$'; then echo failed; else echo good; fi
+      register: netfailed
+      changed_when: netfailed.stdout == 'failed'
+
+    - name: "alpine : libvirt : netsetup : try again..."
+      ansible.builtin.include_tasks: kvm_netsetup.yaml
+      when: netfailed.stdout == 'failed'

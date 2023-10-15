@@ -1,6 +1,11 @@
 ---
 - name: dhcpd_syntax
   ansible.builtin.command: dhcpd -n
+  changed_when: false
+
+- name: iscdhcpd_syntax
+  ansible.builtin.command: dhcpd -t -cf /etc/dhcp/dhcpd.conf
+  changed_when: false
 
 - name: dhcpd_restart
   ansible.builtin.service:

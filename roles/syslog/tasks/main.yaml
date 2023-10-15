@@ -1,4 +1,5 @@
 ---
 - name: "obsd : syslog"
-  include_tasks: openbsd_syslog.yaml
-  when: ansible_facts['os_family']|lower == 'openbsd'
+  include_tasks: syslog.yaml
+  when: net.dns is defined or net.dhcp is defined or web.relay is defined or web.sites is defined
+  # this is effectively all roles that have a syslog dep

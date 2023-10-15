@@ -1,16 +1,19 @@
 ﻿# yviel's FSA - **F**ull **S**erver **A**utomation
-No more following random blogposts, wandering around filesystems doing things you already forgot. Declare your configuration in a simple tree format, press the button and watch it happen.
+<img src="https://img.shields.io/badge/Ansible-informational.svg?logo=Ansible"> <img src="https://img.shields.io/badge/Bash-informational.svg?logo=Shell"> <img src="https://img.shields.io/badge/OpenBSD-success.svg?logo=OpenBSD">
+
+No more following random blogposts, wandering around filesystems editing config files you already forgot about. Declare your setup in a simple tree format, press the button and watch it happen.
 
 Special thanks to Mischa Peters of [obsd.ams](https://openbsd.amsterdam) for his gracious support.
 
-You are viewing the documentation for v0.2.0 - use the branch list on the top left to switch.
+You are reading the documentation for FSA v0.3.0. Use Releases, or Tags, to switch around.
 
 **This software is provided as-is, I take no responsibility for your misconfigurations, my bugs, etc etc.**
 
 ## Table of Contents
  - [Project Goals](#project-goals)
  - [Features](#features)
- - [Documentation](#documentation)
+ - [Contents](#contents)
+ - [Releases](#releases)
 
 ## Project Goals
  - Provide full automation for any and all common services in small- to medium-sized setups.
@@ -23,16 +26,17 @@ You are viewing the documentation for v0.2.0 - use the branch list on the top le
  * Full web automation, Webserver + PHP, Relay/LB
  * Full mail automation, DKIM, relay, spam filtering
  * Full automation of select applications, WebDAV, MySQL
- * Under active development - [bug reports and feature requests](https://github.com/yviel-de/fsa/issues) welcome!
 
+## Contents
+All folders have their own READMEs.
+ - [config/](config/): home of your server configs
+ - [docs/](docs/): home of most documentation
+ - [molecule/](molecule/): home of automated tests for FSA
+ - [playbooks/](playbooks/): home of custom extensions to FSA
+ - [roles/](roles/): home and documentation of config options
+ - [utils/](utils/): home of various scripts, helpers and config files
 
-## Documentation
-Documentation can be found in the `roles` folder and subfolders.
+## Development
+Under Active Development - Feature Requests and Bug Reports welcome!
 
-The following pages should help you on your way.
-
- - [Install & Quickstart](roles/docs/QUICKSTART.md)
- - [Config Docs](roles/)
- - [Full Config Reference](roles/docs/REFERENCE.md)
- - [fsa Command Docs](roles/docs/FSA_CMD.md)
- - [Changelog & Related Infos](roles/CHANGELOG.md)
+Touch base with us directly [on Discord](https://discord.gg/hk7gMYDtN3). Matrix bridge will come in the future.

@@ -1,7 +1,7 @@
-# `net` - yviel's FSA v0.2.0
-This role sets up basic networking, interfaces and routes.
+# `net` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Minimal Example](#minimal-example)
@@ -9,6 +9,13 @@ This role sets up basic networking, interfaces and routes.
     - [VLAN Interface](#vlan-interface)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up basic networking, iE configures interfaces and routes.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 When called, it activates the following roles:
@@ -55,13 +62,13 @@ net:
 |`net.routing`|Bool|No|`false`|Whether to forward packets|
 |`net.routes`|List|No|(none)|Any routes to set up|
 |`net.ifaces`|Dict|Yes|(none)|Network interfaces to configure|
-|`net.ifaces.name`|String|Yes|(none)|Interface name|
+|`net.ifaces.name`|String|Yes|(none)|Interface name, use `fsa -f` to find|
 |`net.ifaces.addr`|String|No|(none)|IP address if static|
 |`net.ifaces.netmask`|String|No|(none)|Netmask, if static|
 |`net.ifaces.vlanid`|Int|No|(none)|VLAN ID, if VLAN interface|
 |`net.ifaces.parent`|String|No|(none)|If VLAN iface, physical parent interface|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [fw](../fw)

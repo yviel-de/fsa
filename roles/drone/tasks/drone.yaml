@@ -1,0 +1,146 @@
+---
+- name: "helm : get plugin"
+  kubernetes.core.helm_plugin:
+    plugin_path: https://github.com/databus23/helm-diff
+    state: present
+
+- name: "drone : add/update repos"
+  delegate_to: localhost
+  kubernetes.core.helm_repository:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    name: drone
+    repo_url: "https://charts.drone.io"
+
+- name: "drone : generate secret"
+  ansible.builtin.set_fact:
+    drone_agent_secret: "{{ lookup('ansible.builtin.password', '/dev/null chars=hexdigits length=32', seed=inventory_hostname) }}"
+  vars:
+    hex_chars: '0123456789ABCDEF'
+
+- name: "drone : create server secret"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    state: present
+    definition:
+        apiVersion: v1
+        kind: Secret
+        type: Opaque
+        metadata:
+          name: "drone-server-secret"
+          namespace: drone
+        data:
+          DRONE_RPC_SECRET: "{{ drone_agent_secret | b64encode }}"
+          DRONE_GITEA_CLIENT_ID: "{{ k8s.drone.gitea.client | b64encode }}"
+          DRONE_GITEA_CLIENT_SECRET: "{{ k8s.drone.gitea.secret | b64encode }}"
+
+# we need to put this in a separate var so we can to_json it
+- name: "create config.json"
+  ansible.builtin.set_fact:
+    dockerjson: "{'insecure-registries' : ['http://{{ k8s.drone.runners.insecure_registry }}']}"
+  when: k8s.drone.runners.insecure_registry is defined
+
+- name: "drone : create docker configmap"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    state: present
+    definition:
+        apiVersion: v1
+        kind: ConfigMap
+        metadata:
+          name: "drone-registry"
+          namespace: drone
+        data:
+          dockerconfigjson: "{{ dockerjson | to_json }}"
+  when: k8s.drone.runners.insecure_registry is defined
+
+- name: "drone : create agent secret"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    state: present
+    definition:
+        apiVersion: v1
+        kind: Secret
+        type: Opaque
+        metadata:
+          name: "drone-agent-secret"
+          namespace: drone
+        data:
+          DRONE_RPC_SECRET: "{{ drone_agent_secret | b64encode }}"
+
+- name: "drone : template values files"
+  ansible.builtin.template:
+    src: values.yaml.j2
+    dest: "{{ 'values-' + item + '.yaml' }}"
+  loop: "{{ drone.releases }}"
+  delegate_to: localhost
+  changed_when: false
+
+- name: "drone : install/update releases"
+  delegate_to: localhost
+  kubernetes.core.helm:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    name: "{{ item }}"
+    chart_ref: "drone/{{ item }}"
+    release_namespace: drone
+    create_namespace: true
+    values: "{{ lookup('template', 'values-' + item + '.yaml') | from_yaml }}"
+  loop: "{{ drone.releases }}"
+
+- name: "drone : cleanup values files"
+  ansible.builtin.file:
+    path: "{{ 'values-' + item + '.yaml' }}"
+    state: absent
+  loop: "{{ drone.releases }}"
+  delegate_to: localhost
+  changed_when: false
+
+# add rollingupdate strategy, and add an extra contianer with the ssh runner
+# this is easier than forking the chart
+- name: "drone : patch strategy"
+  kubernetes.core.k8s:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    state: patched
+    kind: Deployment
+    namespace: drone
+    name: drone-runner-docker
+    merge_type: strategic-merge
+    definition:
+      spec:
+        strategy:
+          rollingUpdate:
+            maxUnavailable: 1
+        template:
+          spec:
+            containers:
+              - image: docker.io/drone/drone-runner-ssh:latest
+                name: drone-ssh-runner
+                envFrom:
+                - secretRef:
+                    name: drone-agent-secret
+                - configMapRef:
+                    name: drone-runner-docker
+  delegate_to: localhost
+  changed_when: false
+
+# this is easier than forking the chart
+- name: "drone : patch livenessprobe"
+  kubernetes.core.k8s_json_patch:
+    kubeconfig: "{{ kubeconfig }}"
+    context: "{{ kubectx }}"
+    kind: Deployment
+    namespace: drone
+    name: drone-runner-docker
+    patch:
+      - op: remove
+        path: /spec/template/spec/containers/1/livenessProbe
+  delegate_to: localhost
+  changed_when: false
+  # throws error when it's already patched, so we ignore that
+  ignore_errors: true
+

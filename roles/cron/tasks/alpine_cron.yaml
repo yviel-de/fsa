@@ -1,0 +1,9 @@
+---
+
+- name: "alpine : template out /etc/periodic/daily/autoupdate"
+  ansible.builtin.template:
+    src: alpine_autoupdate.j2
+    dest: /etc/periodic/daily/autoupgrade
+    mode: "0700"
+  when: base.autoupdate
+  notify: alpine_reboot

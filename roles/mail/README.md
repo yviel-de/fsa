@@ -1,7 +1,7 @@
-# `mail` - yviel's FSA v0.2.0
-This role sets up an smtpd mail server.
+# `mail` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Minimal Example](#minimal-example)
@@ -9,6 +9,12 @@ This role sets up an smtpd mail server.
     - [Full Mail Server](#full-mail-server)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up a mail server for forwarding and/or more advanced purposes.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -82,25 +88,27 @@ mail:
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
 |`mail`|Parent|No|(none)|Activates `mail`|
+|`mail.setup`|Bool|No|`false`|Whether to display the DKIM pubkeys and other DNS information|
 |`mail.listen`|Dict|Yes|(none)|Listeners to set up|
 |`mail.listen.addr`|String|Yes|(none)|Addresses to listen on|
 |`mail.listen.port`|Int|Yes|(none)|Port to listen on|
-|`mail.listen.filter`|String|Yes|(none)|Filtering, see [filter](../filter)|
+|`mail.listen.filter`|String|Yes|(none)|Filtering level: `none`, `conn`ection or full `spam`|
 |`mail.listen.tls`|String|No|`false`|Sets up LetsEncrypt, `dev` or `prod`|
 |`mail.listen.auth`|Bool|No|`false`|Require authentication|
-|`mail.listen.dkim`|Bool|No|`false`|DKIM-signing, see [dkim](../dkim)|
-|`mail.listen.whitelist`|Bool|No|`false`|Whether to apply `mail.whitelist`|
+|`mail.listen.dkim`|Bool|No|`false`|Sign submitted messages with DKIM|
+|`mail.listen.whitelist`|Bool|No|`false`|Apply `mail.whitelist` to this listener|
 |`mail.domains`|List|Yes|(none)|Domains to accept mail for|
 |`mail.users`|Dict|No|(none)|Sender-only users to set up|
 |`mail.users.name`|String|Yes|(none)|Username to set up|
 |`mail.users.pass`|String|Yes|(none)|Password hash, use `fsa -g`|
-|`mail.boxes`|Dict|No|(none)|Sets up mailboxes, see [boxes](../../roles/boxes)|
-|`mail.boxes.name`|String|Yes|(none)|Username to set up|
-|`mail.boxes.pass`|String|Yes|(none)|Password hash, use `fsa -g`|
+|`mail.boxes`|Dict|No|(none)|Mailboxes to set up|
+|`mail.boxes.addr`|String|Yes|(none)|Email address to set up|
+|`mail.boxes.pass`|String|Yes|(none)|Password hash, use `fsa -g` to generate|
 |`mail.virtuals`|List|No|(none)|Aliases, distribution lists, etc to set up|
-|`mail.whitelist`|List|No|(none)|IP addresses or CIDRs to allow|
+|`mail.whitelist`|List|No|(none)|IP addresses or CIDRs to forward mail for|
+|`mail.relay`|String|No|(none)|Hostname of the server all incoming mail will be relayed to|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [boxes](../boxes/)

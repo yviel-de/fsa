@@ -1,11 +1,18 @@
-# `sshd` - yviel's FSA v0.2.0
-This role sets up sshd, with optional sshguard and EC algos.
+# `sshd` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role provides configuration options for the SSH daemon.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 When called, it activates the following roles:
@@ -28,11 +35,11 @@ base:
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
 |`base.sshd`|Parent|No|(none)|Activates `sshd`|
-|`base.sshd.enabled`|Bool|No|`true`|Whether to enable sshd|
+|`base.sshd.enabled`|Bool|No|`true`|Whether to disable sshd|
 |`base.sshd.tune`|Bool|No|`false`|Whether to set up EC algos|
 |`base.sshd.guard`|Bool|No|`false`|Whether to set up sshguard|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [base](../base)

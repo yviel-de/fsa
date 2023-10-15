@@ -1,0 +1,4 @@
+---
+- name: "obsd : run firewall"
+  include_tasks: openbsd_pf.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

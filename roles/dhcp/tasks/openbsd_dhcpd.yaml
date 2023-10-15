@@ -3,7 +3,7 @@
   ansible.builtin.template:
     src: dhcpd.conf.j2
     dest: /etc/dhcpd.conf
-    mode: 0600
+    mode: "0600"
   notify:
     - dhcpd_syntax
     - dhcpd_restart
@@ -12,5 +12,5 @@
   ansible.builtin.file:
     path: /var/log/dhcpd.log
     state: touch
-    mode: 0600
+    mode: "0600"
   changed_when: false

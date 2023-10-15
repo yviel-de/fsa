@@ -1,36 +1,5 @@
-# this task file exists so this can be called as an include_role with target as the var
-# in case we want to delegate things to other inventoried hosts
 ---
-- name: check OS
-  ansible.builtin.raw: uname
-  register: uname
-  changed_when: false
-  delegate_to: "{{ target }}"
-  delegate_facts: true
-  throttle: 1
-
-- name: set connection facts
-  ansible.builtin.set_fact:
-    ansible_host: "{{ hostvars[target][fsa][addr] | default(target) }}"
-    ansible_port: "{{ hostvars[target][fsa][port] | default('22') }}"
-    ansible_become: "{{ true if hostvars[target][fsa][user] | default(lookup('pipe', 'whoami')) != 'root' else false }}"
-    ansible_become_method: "{{ 'doas' if 'OpenBSD' in uname.stdout else 'sudo' }}"
-  changed_when: false
-  delegate_to: "{{ target }}"
-  delegate_facts: true
-  throttle: 1
-
-- name: bootstrap
-  ansible.builtin.raw: which python3 || pkg_add python3 || apk add python3 || apt install python3
-  when: fsa.bootstrap|default(true)
-  changed_when: false
-  delegate_to: "{{ target }}"
-  delegate_facts: true
-  throttle: 1
-
-# also serves as a failcheck
-- name: gather facts
-  ansible.builtin.setup:
-  delegate_to: "{{ target }}"
-  delegate_facts: true
-  throttle: 1
+# exists as a failcheck
+- name: "Connect"
+  ansible.builtin.include_tasks: connect.yaml
+  when: target is defined and fsa is defined

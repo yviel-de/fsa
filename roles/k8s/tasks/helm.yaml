@@ -1,0 +1,42 @@
+---
+- name: "helm : get plugin"
+  kubernetes.core.helm_plugin:
+    plugin_path: https://github.com/databus23/helm-diff
+    state: present
+
+- name: "helm : add/update repos"
+  delegate_to: localhost
+  kubernetes.core.helm_repository:
+    kubeconfig: "{{ fsa.k8s.conffile if fsa.k8s.conffile is defined else '~/.kube/config' }}"
+    context: "{{ fsa.k8s.context if fsa.k8s.context is defined else 'default' }}"
+    name: "{{ item.name }}"
+    repo_url: "{{ item.url }}"
+  loop: "{{ k8s.helm.repos }}"
+
+- name: "helm : template values files"
+  ansible.builtin.template:
+    src: values.yaml.j2
+    dest: "{{ 'values-' + item.name + '.yaml' }}"
+  loop: "{{ k8s.helm.install }}"
+  delegate_to: localhost
+  changed_when: false
+
+- name: "helm : install/update releases"
+  delegate_to: localhost
+  kubernetes.core.helm:
+    kubeconfig: "{{ fsa.k8s.conffile if fsa.k8s.conffile is defined else '~/.kube/config' }}"
+    context: "{{ fsa.k8s.context if fsa.k8s.context is defined else 'default' }}"
+    name: "{{ item.name }}"
+    chart_ref: "{{ item.repo }}/{{ item.name }}"
+    release_namespace: "{{ item.namespace }}"
+    create_namespace: true
+    values: "{{ lookup('template', 'values-' + item.name + '.yaml') | from_yaml }}"
+  loop: "{{ k8s.helm.install }}"
+
+- name: "helm : cleanup values files"
+  ansible.builtin.file:
+    path: "{{ 'values-' + item.name + '.yaml' }}"
+    state: absent
+  loop: "{{ k8s.helm.install }}"
+  delegate_to: localhost
+  changed_when: false

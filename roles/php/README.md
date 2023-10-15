@@ -1,11 +1,17 @@
-# `php` - yviel's FSA v0.2.0
-This role sets up PHP-FPM and links it with the webserver.
+# `php` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up the PHP-FPM daemon and links it to the webserver.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -37,11 +43,11 @@ web:
 ### Reference
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
-|`web.httpd.php`|Parent|No|(none)|Activates `php`|
-|`web.httpd.php.version`|String|Yes|(none)|PHP version to install (`X.Y`)|
-|`web.httpd.php.libs`|List|No|(none)|Any PHP libraries to install|
+|`web.php`|Parent|No|(none)|Activates `php`|
+|`web.php.version`|String|Yes|(none)|PHP version to install (`X.Y`)|
+|`web.php.libs`|List|No|(none)|Any PHP libraries to install|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [httpd](../httpd)

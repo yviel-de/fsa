@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 #
 # ansible wrapper script for fsa
 # its usage is documented in the *.md files
@@ -41,12 +41,12 @@
 # map_tags():
 # - takes: tags:bar,foo,baz,faz
 # - maps them against ansible roles & tags
-# - creates roleslist=bar,baz tagslist=foo,faz
+# - creates filteredroles=bar,baz tagslist=foo,faz
 # - if tag shows up in role, add role
 # - if tag shows up in rolename, remove tag for ansible
 #
 # build_playbook():
-# - consumes roleslist, tagslist, groupslist
+# - consumes filteredroles, tagslist, groupslist
 # - consumes fsa host_vars, builds become_method-groups
 # - builds a master playbook w/ include for each group
 # - which also sets up and destroys entries in ~/.ssh/config
@@ -55,6 +55,9 @@
 # - execs $playbook
 # - palpatine.jpg
 #
+# tf_apply():
+# - execs terraform plans within ./terraform
+
 
 # two small helper functions
 function abort {
@@ -70,7 +73,30 @@ function cleanup {
     rm -rf $clearlist
     exit
 }
-trap cleanup SIGHUP SIGINT SIGQUIT SIGABRT SIGKILL SIGTERM EXIT
+trap cleanup SIGHUP SIGINT SIGQUIT SIGABRT SIGTERM EXIT
+
+function usage {
+        cat << EOF
+Usage: fsa.sh -l host1,host2 [-r role1,role2] [-f] [-u] [-v] [--debug]
+       fsa.sh [-p my_file.yml] [-g mypass] [-h]
+
+    -l [--limit] host1,host2 or "all" - runs against selected hosts
+    -r [--roles] role1,role2 - limits configuration to specific roles
+    -c [--config] role1,role2 - same as --roles
+
+    -u [--updates]: perform only updates
+    -f [--finder]: run the ethernet-finder
+    -v [--verbose]: show precise changes made
+
+    -g [--genpass] mypassword - generate passwords and password hashes
+    -p [--playbook] my_file.yml - executes an existing playbooks/my_file.yml
+    -t [--terraform] - executes actions proposed in terraform plan stored in ./terraform
+    -h [--help]: display this text
+
+    --debug: output debug info
+EOF
+        exit 0
+}
 
 function sanity_check {
     # dev mode switch
@@ -79,7 +105,7 @@ function sanity_check {
         devmode=true
         varsdir="host_vars"
         ansibledir="$(pwd)"
-        versionstring="v0.2.0-dev"
+        versionstring="v0.3.0-dev"
 
 
     elif [ -d config ]; then
@@ -91,7 +117,7 @@ function sanity_check {
         devmode=false
         varsdir="config"
         ansibledir="$(pwd)"
-        versionstring="v0.2.0"
+        versionstring="v0.3.0"
     else
         abort "Configuration not found.\nMake sure you're in an fsa $versionstring or ansible directory."
     fi
@@ -105,13 +131,27 @@ function sanity_check {
 
     echo "# fsa $versionstring #"
     inventory="$ansibledir/inventory"
+    playbookfile="$(mktemp -p $ansibledir)"
+    clearlist="$clearlist $playbookfile"
+
 
     # we need to build the inventory if it doesn't already exist
     if ! [ -f "$inventory" ]; then
         clearlist="$clearlist $inventory"
-        for machine in $(find $varsdir -type f | rev | cut -d '/' -f1 | rev); do
-            # exempt the example host
-            if ! echo "$machine" | grep -qE "^fsa-example-[A-Za-z]+-[A-Za-z]+$"; then
+        # we need to make 2 passes since they need to be grouped together
+        for machine in $(find $varsdir -type f | rev | cut -d '/' -f1 | rev | grep -vE ".git|README.md"); do
+            if awk '/fsa:/,/^$/' "$varsdir"/"$machine" | grep -q k8s:; then
+                if ! grep -q fsa_k8sclusters "$inventory" 2>/dev/null; then
+                    echo "[fsa_k8sclusters]" >> "$inventory"
+                fi
+                echo "$machine" >> "$inventory"
+            fi
+        done
+        for machine in $(find $varsdir -type f | rev | cut -d '/' -f1 | rev | grep -vE ".git|README.md"); do
+            if ! awk '/fsa:/,/^$/' "$varsdir"/"$machine" | grep -q k8s:; then
+                if ! grep -q fsa_regularboxes "$inventory" 2>/dev/null; then
+                    echo "[fsa_regularboxes]" >> "$inventory"
+                fi
                 echo "$machine" >> "$inventory"
             fi
         done
@@ -121,11 +161,12 @@ function sanity_check {
 function parse_args {
     args=""
     while [ $# -gt 0 ]; do
-        case $1 in
+        case "$1" in
             -g|--genpass)
                 genpass=true
                 shift
                 pass="$@"
+                break
                 ;;
             -l|--limit)
                 limit="$2"
@@ -153,16 +194,26 @@ function parse_args {
                 shift
                 ;;
             -p|--playbook)
-                playbook="$2"
-                shift 2
+                if [ -f playbooks/"$2".yml ]; then
+                    playbook="playbooks/$2.yml"
+                    shift 2
+                else
+                    echo "playbooks/$2.yml not found"
+                    helponly= true
+                fi
+                ;;
+            -t|--terraform)
+                tf_apply_exec=true
+                shift
                 ;;
             --debug)
                 debug=true
                 shift
                 ;;
             *)
-                echo "Unknown argument: $1"
-                exit 1
+                echo "Argument $1 not recognized."
+                helponly=true
+                break
                 ;;
         esac
     done
@@ -174,60 +225,55 @@ function parse_args {
         exit 0
     fi
     if [ "$helponly" == "true" ]; then
-        cat << EOF
-#### $versionstring ####
--l [--limit] host1,host2 - limits execution to specific hosts
--c [--config] key1,key2 - limits configuration to specific keys
--r [--roles] key1,key2 - same as --config
--p [--playbook] my_file.yaml - executes an existing playbook file
--g [--genpass] mypassword - generate passwords and password hashes
--u [--updates]: perform only updates
--f [--finder]: run the fact-finder
--v [--verbose]: show detailed information about proceedings
---debug: show super-detailed information
--h [--help]: display this information
-EOF
-        exit 0
+        usage
     fi
     # individual roles
     if [ "$updateonly" == "true" ]; then
-        roleslist="fsa_update"
+        filteredroles="fsa_update"
         build_playbook
 
     elif [ "$finderonly" == "true" ]; then
-        roleslist="fsa_finder"
+        filteredroles="fsa_finder"
         limit="$finderlimit"
         build_playbook
 
-    elif ! [ -z "$playbook" ]; then
+    elif [ -f "$playbook" ]; then
         # we've been given a playbook file
         # we still create a playbook with fsa_connect
         # but then jump right to exec
-        cat << EOF > "$ansibledir/.LASTRUN.fsa.tmp"
+        cat << EOF > "$playbookfile"
 # fsa $versionstring
 # You can see this file because FSA is running, or crashed on the last run
 # It exists so that FSA knows to re-run all the triggers
 # FSA will remove it automatically on the next successful run
 - name: setup connection
-  import_playbook: roles/fsa_connect/connect.yaml
+  import_playbook: roles/fsa_connect/hostconnect.yaml
 - name: execute playbook
   import_playbook: $playbook
 EOF
-        playbook="$ansibledir/.LASTRUN.fsa.tmp"
+        playbook="$playbookfile"
         exec_play
 
+    elif [ "$tf_apply_exec" == "true" ]; then
+        tf_apply
+
     else
-        map_tags
+        if [ "$limit" != "" ]; then
+            map_tags
+        else
+            echo "Error: No hosts specified to run against."
+            usage
+        fi
     fi
 }
 
 function genpass {
-    which openssl >/dev/null || abort "OpenSSL not found, required for generating passwords. PLease install."
+    which openssl >/dev/null || abort "OpenSSL not found, required for generating passwords. Please install."
     read -p "Select host to run against: " targethost
     [ "$targethost" == "" ] && abort "Must specify a host in the inventory to generate password against."
     $pipenv ansible-inventory --inventory=$inventory --graph | grep -v \@ | tr -d '| -' | grep -q "$targethost" || abort "Couldn't find specified host in the inventory."
     uname=$(ssh "$targethost" "uname")
-    if [ -z $pass ]; then
+    if [ -z "$pass" ]; then
         pass="$(openssl rand -base64 24)"
     fi
     if [ "$uname" == "OpenBSD" ]; then
@@ -242,20 +288,34 @@ function genpass {
 
 function map_tags {
     echo "Reading configuration..."
-    # put all roles into a nice comma-separated list
-    rawroles="$(find $ansibledir/roles/ -maxdepth 1 -type d | rev | cut -d '/' -f1 | rev | sed '/^$/d' | sort | tr '\n' ',')"
-    # remove fsa-prefixed internal roles from selection
-    availableroles="$(echo $rawroles | tr ',' '\n' | grep -v ^fsa_ | tr '\n' ',' | sed 's/,,/,/g')"
+
+    rawroles=$(find $ansibledir/roles -maxdepth 1 -type d | sort)
+    availableroles=""
+    filteredroles=""
+    internal=""
+    k8s=""
+    vms=""
+
+    # we need to add roles to their corresponding lists based on being internal or executable
+    for role in $rawroles; do
+        works_against=$(awk -v RS= '/### Works Against/' $role/README.md 2>/dev/null | grep -v 'Works Against')
+        role_name=$(echo $role | rev | cut -d '/' -f1 | rev)
+        echo $works_against | grep -q 'FSA-Internal' && internal+=",$role_name" || availableroles+=",$role_name"
+    done;
+
+    # removing leading and trailing commas
+    internal=$(echo $internal | sed 's/^,//g' | sed 's/,$//g')
+    availableroles=$(echo $availableroles | sed 's/^,//g' | sed 's/,$//g')
 
     if [ -z "$tags" ]; then
-        # no tags defined, play all
-        roleslist="$availableroles"
+        filteredroles=$availableroles
 
     else
         # easiest way seems to be ansible-playbook --list-tags
         # write each role separately into the book such as to easily parse the output
         for role in $(echo "$availableroles" | tr ',' '\n'); do
             roletests="$roletests
+# dummy hostname, not important here
 - hosts: $role
   roles:
    - $role
@@ -263,10 +323,10 @@ function map_tags {
         done
 
         testfile="$(mktemp -p $ansibledir)"
+        clearlist="$clearlist $testfile"
         echo "$roletests" > "$testfile"
-        # the cmd alone is half the runtime. might have to find a more efficient way
+        # this cmd alone is half the runtime. might have to find a more efficient way
         results="$($pipenv ansible-playbook --list-tags $testfile 2>/dev/null)"
-        rm -f "$testfile"
 
         # parse the results
         for role in $(echo "$availableroles" | tr ',' '\n'); do
@@ -274,7 +334,7 @@ function map_tags {
 
             for tag in $(echo "$tags" | tr ',' '\n'); do
                 if echo "$role, $roletasks," | grep -q "$tag,"; then
-                    roleslist="$roleslist,$role"
+                    filteredroles="$filteredroles,$role"
                 fi
                 if [ "$role" != "$tag" ]; then
                     if echo "$roletasks" | grep -q "$tag,"; then
@@ -286,16 +346,27 @@ function map_tags {
             done
         done
     fi
-    # remove leading & trailing comma
+
     tagslist="$(echo $tagslist | sed 's/^,//g' | sed 's/,$//g')"
-    roleslist="$(echo $roleslist | sed 's/^,//g' | sed 's/,$//g')"
+    filteredroles="$(echo $filteredroles | sed 's/^,//g' | sed 's/,$//g')"
+
+    # we need to add roles to their corresponding lists based on hosts they run against
+    for role in $(echo $filteredroles | tr ',' '\n' ); do
+        works_against=$(awk -v RS= '/### Works Against/' roles/$role/README.md 2>/dev/null | grep -v 'Works Against')
+        role_name=$(echo $role | rev | cut -d '/' -f1 | rev)
+        echo $works_against | grep -q 'Kubernetes' && k8s+=",$role_name"
+        echo $works_against | grep -qe 'OpenBSD' -e 'Alpine' && vms+=",$role_name"
+    done;
+
+    vms=$(echo $vms | sed 's/^,//g' | sed 's/,$//g')
+    k8s=$(echo $k8s | sed 's/^,//g' | sed 's/,$//g')
+
     build_playbook
 }
 
 function build_playbook {
     echo "Building playbooks..."
     playbookdir="$ansibledir"
-    playbookroles="$(echo $roleslist | tr ',' '\n' | sed 's/^/   - /g')"
 
     if [ -z "$limit" ]; then
         hostlist="$($pipenv ansible-inventory --inventory=$inventory --graph all | grep -v '@' | tr -d ' ','|','-' | tr '\n' ',')"
@@ -304,20 +375,25 @@ function build_playbook {
     fi
 
     # build the master playbook
-    cat << EOF > "$ansibledir/.LASTRUN.fsa.tmp"
-# fsa $versionstring
-# You can see this file because FSA crashed on the last run
+    echo "# You can see this file because FSA crashed on the last run
 # It exists so that FSA knows to re-run all the triggers
 # FSA will remove it automatically on the next successful run
 - name: setup connection
-  import_playbook: roles/fsa_connect/connect.yaml
-- hosts: all
+  import_playbook: roles/fsa_connect/hostconnect.yaml" > $playbookfile
+
+    [ ! -z $vms ] && echo "
+- hosts: fsa_regularboxes
+  gather_facts: true
+  roles:
+$(echo $vms | tr ',' '\n' | sed 's/^/   - /g')" >> $playbookfile
+
+    [ ! -z $k8s ] && echo "
+- hosts: fsa_k8sclusters
   gather_facts: false
   roles:
-$playbookroles
-EOF
+$(echo $k8s | tr ',' '\n' | sed 's/^/   - /g')" >> $playbookfile
 
-    playbook="$ansibledir/.LASTRUN.fsa.tmp"
+    playbook="$playbookfile"
     exec_play
 }
 
@@ -332,7 +408,7 @@ function exec_play {
     if [ "$debug" == "true" ]; then
         args="$args -vvv"
     elif [ "$verbose" == "true" ]; then
-        args="$args -v --diff"
+        args="$args --diff"
     fi
     if [ "$askpass" == "true" ]; then
         args="$args -K"
@@ -351,10 +427,15 @@ function exec_play {
         clearlist="$clearlist $ansibledir/host_vars"
     fi
     ANSIBLE_CONFIG=$ansibledir/utils/ansible.cfg $pipenv ansible-playbook --inventory=$inventory $playbook $args
-    # dont remove if run failed
-    if [ "$?" -eq 0 ]; then
-        clearlist="$clearlist $ansibledir/.LASTRUN.fsa.tmp"
+}
+
+function tf_apply {
+    tfdir="$ansibledir/terraform"
+    if [ ! -d $tfdir ]; then
+        echo "ERROR: $tfdir does not exist" && exit 1
     fi
+    cd $tfdir && terraform apply
+    exit 0
 }
 
 sanity_check

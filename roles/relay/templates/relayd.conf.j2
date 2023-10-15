@@ -1,23 +1,38 @@
 prefork 16
 log connection
+log state changes
 
 {% for backend in web.relay.backends %}
 table <{{ backend.name }}> { {{ backend.targets | join(' ') }} }
 {% endfor %}
+{% if virt is defined %}
+table <fsa_virt> { 100.92.0.1 }
+http protocol "fsa_virt" {
+        tcp { nodelay, sack, backlog 256, socket buffer 65536 }
+        match url log
+}
+relay "fsa_virt" {
+        protocol "fsa_virt"
+        listen on 100.92.0.1 port 80
+        forward to <fsa_virt> port 8080
+}
+{% endif %}
 
 {% for frontend in web.relay.frontends %}
 {{ frontend.type |default('http') }} protocol "{{ frontend.name }}" {
-{% if frontend.type |default('http') != 'dns' %}
-        tcp { nodelay sack, backlog 256, socket buffer 65536 }
+{% if frontend.type |default('http') == 'http' %}
+        tcp { nodelay, sack, backlog 256, socket buffer 65536 }
+{% elif frontend.type |default('http') == 'tcp' %}
+        tcp { nodelay, sack, backlog 256, socket buffer 65536 }
 {% endif %}
+        return error style "body { background: #a00000; color: white; }"
 {% if frontend.type |default('http') == 'http' %}
 {% if frontend.wsock | default(false) %}
         http websockets
 {% endif %}
-{% if web.relay.frontends | selectattr('tls', 'eq', 'prod') | length > 0  or web.relay.frontends | selectattr('tls', 'eq', 'dev') | length > 0 %}
+{% if web.relay.frontends | selectattr('tls', 'defined') | length > 0 %}
         tls { no tlsv1.0, ciphers 'HIGH:!aNULL' }
         tls no session tickets
-        return error
 
         match request header append "X-Forwarded-For" value "$REMOTE_ADDR"
         match request header append "X-Forwarded-By" value "$SERVER_ADDR:$SERVER_PORT"
@@ -28,19 +43,22 @@ table <{{ backend.name }}> { {{ backend.targets | join(' ') }} }
         match header log "User-Agent"
         match url log
 {% for backend in web.relay.backends %}
+{% if backend.domains is defined %}
 {% for domain in backend.domains %}
 {% for frontend in web.relay.frontends %}
 {% if frontend.name == backend.origin %}
-{% if frontend.tls == 'prod' or frontend.tls == 'dev' %}
+{% if frontend.tls is defined %}
         tls keypair {{ domain }}
 {% endif %}
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% endif %}
 {% endfor %}
 {% endif %}
 {% endif %}
 {% for backend in web.relay.backends %}
+{% if backend.origin == frontend.name %}
 {% if backend.domains is defined %}
 {% for domain in backend.domains %}
 {% if backend.sources is defined %}
@@ -51,6 +69,13 @@ table <{{ backend.name }}> { {{ backend.targets | join(' ') }} }
         pass request quick header "Host" value "{{ domain }}" forward to <{{ backend.name }}>
 {% endif %}
 {% endfor %}
+{% elif backend.sources is defined %}
+{% for source in backend.sources %}
+        pass request quick from {{ source }} forward to <{{ backend.name }}>
+{% endfor %}
+{% else %}
+        pass request quick forward to <{{ backend.name }}>
+{% endif %}
 {% endif %}
 {% endfor %}
         block request
@@ -59,8 +84,9 @@ table <{{ backend.name }}> { {{ backend.targets | join(' ') }} }
 
 {% for frontend in web.relay.frontends %}
 relay {{ frontend.name }} {
-        listen on {{ frontend.addr }} port {{ frontend.port }} {% if frontend.tls is defined %}tls
+        listen on {{ frontend.addr }} port {{ frontend.port }}{% if frontend.tls is defined %} tls
 {% endif %}
+
         protocol "{{ frontend.name }}"
 {% for backend in web.relay.backends %}
 {% if backend.origin == frontend.name %}

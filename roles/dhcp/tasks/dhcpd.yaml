@@ -1,0 +1,8 @@
+---
+- name: "openbsd : set up dhcp"
+  ansible.builtin.include_tasks: openbsd_dhcpd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : set up dhcp"
+  ansible.builtin.include_tasks: alpine_dhcpd.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

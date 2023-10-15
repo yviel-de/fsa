@@ -1,0 +1,7 @@
+---
+machines:
+  - name: idempotence
+    box: obsd72
+scenario:
+  - converge
+  - idempotence

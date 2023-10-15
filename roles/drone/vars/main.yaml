@@ -1,0 +1,10 @@
+---
+drone:
+  releases:
+    - drone
+    - drone-runner-docker
+#    - drone-kube-secrets
+
+kubeconfig: "{{ fsa.k8s.conffile if fsa.k8s.conffile is defined else '~/.kube/config' }}"
+kubectx: "{{ fsa.k8s.context if fsa.k8s.context is defined else 'default' }}"
+

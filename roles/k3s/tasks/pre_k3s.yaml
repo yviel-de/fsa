@@ -1,0 +1,47 @@
+---
+# generates api endpoint from provided arguments
+- name: "generate db endpoint string"
+  ansible.builtin.set_fact:
+    db_endpoint: "{{ item.endpoint }}"
+  loop:
+    - endpoint: "postgres://{{ apps.k3s.db.user }}:{{ apps.k3s.db.pass }}@{{ apps.k3s.db.host }}:{{ apps.k3s.db.port }}/{{ apps.k3s.db.database}}"
+      type: postgres
+    - endpoint: "mysql://{{ apps.k3s.db.user }}:{{ apps.k3s.db.pass }}@tcp({{ apps.k3s.db.host }}:{{ apps.k3s.db.port }})/{{ apps.k3s.db.database)"
+      type: mysql
+    - endpoint: "{{ apps.k3s.db.endpoints | join(',') }}"
+      type: etcd
+  when: apps.k3s.db is defined and apps.k3s.db.type|default('') == item.type
+
+# retrieves the node token from remote server host for setting up k3s agent
+- name: "agent : retrieve token from server"
+  become: true
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: retrieved_token_join
+  delegate_to: "{{ apps.k3s.join }}"
+  when: apps.k3s.join is defined
+
+# retrieves the node token from host and uses it for upgrading k3s server
+- name: "server : retrieve token from file"
+  become: true
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/k3s/server/node-token
+  register: retrieved_token_upgrade
+  when: apps.k3s.token is not defined and apps.k3s.type == 'server' and apps.k3s.upgrade|default(false) == true
+
+# a bunch of steps to correctly set the token variable
+- name: "set retrieve_token"
+  ansible.builtin.set_fact:
+    retrieved_token: "{{ retrieved_token_upgrade if retrieved_token_upgrade.content is defined else retrieved_token_join|default('') }}"
+  when: apps.k3s.join is defined or apps.k3s.upgrade|default(false) == true
+
+- name: "split retrieved token"
+  ansible.builtin.set_fact:
+    split_token: "{{ (retrieved_token.content|b64decode|split(':'))[3]|trim if apps.k3s.type == 'server' else retrieved_token.content|b64decode|trim }}"
+  when: retrieved_token is defined
+
+- name: "set token"
+  ansible.builtin.set_fact:
+    token: "{{ apps.k3s.token|default('') if apps.k3s.token is defined else split_token|default('') }}"
+  when: apps.k3s.token is defined or split_token is defined
+

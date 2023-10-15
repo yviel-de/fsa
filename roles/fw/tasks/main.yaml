@@ -1,4 +1,4 @@
 ---
-- name: "obsd : run firewall"
-  include_tasks: openbsd_pf.yaml
-  when: net is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "run firewall"
+  include_tasks: fw.yaml
+  when: net is defined

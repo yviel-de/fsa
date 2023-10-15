@@ -16,6 +16,11 @@ iface {{ myname }} inet
     address {{ iface.addr }}
     netmask {{ iface.netmask }}
 {% endif %}
+{% if virt is defined %}
+    pre-up echo 0 > /proc/sys/net/bridge/bridge-nf-call-arptables
+    pre-up echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables
+    pre-up echo 0 > /proc/sys/net/bridge/bridge-nf-call-ip6tables
+{% endif %}
 {% if net.routes is defined %}
 {% set fullnet = (iface.addr + '/' + iface.netmask) %}
 {% set cidrnet = fullnet | ansible.utils.ipaddr('network/prefix') %}
@@ -36,4 +41,10 @@ iface {{ myname }} inet
 {% endif %}
     hostname {{ ansible_hostname }}
 {% endfor %}
-
+#{% if virt is defined %}
+#auto virbr0
+#iface virbr0 inet static
+#    pre-up brctl addbr virbr0
+#    up ip addr add $IFACE 172.16.24.1/24
+#    up ip addr add $IFACE 100.92.0.1/24
+#{% endif %}

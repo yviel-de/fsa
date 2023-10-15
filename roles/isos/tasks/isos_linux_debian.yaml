@@ -3,14 +3,6 @@
   ansible.builtin.shell: set -o pipefail; curl https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/ | tr '=' '\n' |
     grep '"debian-[0-9][0-9]\.[0-9]\.[0-9]-amd64-netinst.iso"' | cut -d '>' -f1 | tr -d '"' | head -1
   register: deb_latest
-  when: arch == 'amd64'
-  changed_when: false
-
-- name: "isos : linux : debian : determine version" # noqa command-instead-of-module
-  ansible.builtin.shell: set -o pipefail; curl https://cdimage.debian.org/debian-cd/current/arm64/iso-cd/ | tr '=' '\n' |
-    grep '"debian-[0-9][0-9]\.[0-9]\.[0-9]-arm64-netinst.iso"' | cut -d '>' -f1 | tr -d '"' | head -1
-  register: deb_latest
-  when: arch == 'aarch64'
   changed_when: false
 
 - name: "isos : linux : debian : download time notif"
@@ -19,7 +11,6 @@
 
 - name: "isos : linux : debian : download latest iso"
   ansible.builtin.get_url:
-    url: https://cdimage.debian.org/debian-cd/current/{{ 'arm64' if arch == 'aarch64' else arch }}/iso-cd/{{ deb_latest.stdout
-      }}
+    url: https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/{{ deb_latest.stdout }}
     dest: /home/isos/debian-fsa-latest.iso
     mode: 0640

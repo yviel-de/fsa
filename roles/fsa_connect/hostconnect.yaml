@@ -1,0 +1,36 @@
+# this playbook file exists to be called by fsa.sh
+---
+- hosts: "{{ target | default('all') }}" # noqa name[play]
+  gather_facts: false
+  tasks:
+    - name: set connection facts
+      ansible.builtin.set_fact:
+        ansible_user: "{{ fsa.user | default(lookup('pipe', 'whoami')) }}"
+        ansible_host: "{{ 'localhost' if fsa.k8s is defined else fsa.addr | default(inventory_hostname) }}"
+        ansible_port: "{{ fsa.port | default('22') }}"
+        ansible_connection: "{{ 'local' if fsa.k8s is defined else 'ssh' }}"
+        ansible_ssh_private_key_file: "{{ fsa.keyfile | default('~/.ssh/id_rsa') }}"
+      changed_when: false
+
+    - name: check OS
+      ansible.builtin.raw: uname
+      register: uname
+      changed_when: false
+      when: fsa.k8s is not defined
+
+    - name: set privilege facts
+      ansible.builtin.set_fact:
+        ansible_become: "{{ true if fsa.user | default(lookup('pipe', 'whoami')) != 'root' else false }}"
+        ansible_become_method: "{{ 'doas' if 'OpenBSD' in uname.stdout else 'sudo' }}"
+      changed_when: false
+      when: fsa.k8s is not defined
+
+    - name: bootstrap
+      ansible.builtin.raw: which python3 || pkg_add python3 || apk add python3 || apt install --yes --no-install-recommends python3
+      changed_when: false
+      when: fsa.k8s is not defined and fsa.bootstrap | default(true)
+
+    # also serves as a failcheck
+    - name: gather facts
+      ansible.builtin.setup:
+      when: fsa.k8s is not defined

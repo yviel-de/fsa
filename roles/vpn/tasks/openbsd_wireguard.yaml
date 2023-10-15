@@ -1,17 +1,17 @@
 ---
-# haven't found a better way to gen the privkey before upping the iface
-- name: "obsd : vpn : install wgconf"
-  community.general.openbsd_pkg:
-    name: wireguard-tools
-    state: present
-
-- name: "obsd : vpn : create keyfolder"
+- name: "obsd : wireguard : create keyfolder"
   ansible.builtin.file:
     path: /etc/wireguard
     state: directory
     mode: 0700
 
-- name: "obsd : vpn : generate wgkeys"
+# todo: find a better way to gen the privkey before upping the iface
+- name: "obsd : wireguard : install wgconf"
+  community.general.openbsd_pkg:
+    name: wireguard-tools
+    state: present
+
+- name: "obsd : wireguard : generate wgkeys"
   ansible.builtin.shell: if ! [ -f /etc/wireguard/{{ item.name }}.key ]; then wg {{ item.act }} > /etc/wireguard/{{ item.name
     }}.key; echo 'changed'; fi
   loop:
@@ -21,7 +21,7 @@
   register: keygen_result
   changed_when: keygen_result.stdout == 'changed'
 
-- name: "obsd : vpn : set key permissions"
+- name: "obsd : wireguard : set key permissions"
   ansible.builtin.file:
     path: /etc/wireguard/{{ item }}.key
     mode: 0600
@@ -29,15 +29,22 @@
     - secret
     - preshared
 
-- name: "obsd : vpn : server"
-  include_tasks: openbsd_wgserver.yaml
-  when: net.vpn.peers is defined
+# we got at least 1 peer with undefined pubkey
+- name: "obsd : wireguard : retrieve keys"
+  include_tasks: openbsd_wgkeys.yaml
+  when: net.vpn.peers | rejectattr('pubkey', 'defined') | length > 0
 
-- name: "obsd : vpn : client"
-  include_tasks: openbsd_wgclient.yaml
-  when: net.vpn.peer is defined
+- name: "obsd : wireguard : read my privkey"
+  ansible.builtin.slurp:
+    src: /etc/wireguard/secret.key
+  register: myprivkey
 
-- name: "obsd : vpn : set up iface"
+- name: "obsd : wireguard : read my psk"
+  ansible.builtin.slurp:
+    src: /etc/wireguard/preshared.key
+  register: mypsk
+
+- name: "obsd : wireguard : set up iface"
   ansible.builtin.template:
     src: hostname.wgX.j2
     dest: /etc/hostname.wg0

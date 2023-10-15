@@ -1,0 +1,81 @@
+---
+- name: "install : alpine : alpine : install helpers"
+  community.general.apk:
+    name:
+      - screen
+    state: present
+
+- name: "install : alpine : alpine : reload"
+  ansible.builtin.meta: flush_handlers
+
+# for alpine, we're baking an autoinstall shellscript into the ISO
+# and executing it manually through vmctl console
+- name: "install : openbsd : alpine : ensure blank slate"
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/home/isos/alpine_staging_files_{{ randomid }}"
+    - "/home/isos/alpine-fsa-{{ vm.name }}-autoinstall.iso"
+
+- name: "install : openbsd : alpine : stage files"
+  ansible.builtin.command:
+    cmd: xorriso -osirrox on -indev /home/isos/alpine-fsa-latest.iso -extract / /home/isos/alpine_staging_files_{{ randomid }}
+  register: unpack
+  changed_when: not unpack.rc == 0
+
+- name: "install : openbsd : alpine : template autoinstall script"
+  ansible.builtin.template:
+    src: alpseed.sh.j2
+    dest: /home/isos/alpine_staging_files_{{ randomid }}/alpseed.sh
+    mode: 0755
+
+- name: "install : openbsd : alpine : repackage iso"
+  ansible.builtin.command:
+    cmd: xorriso -as mkisofs -o /home/isos/alpine-fsa-{{ vm.name }}-autoinstall.iso -isohybrid-mbr /home/isos/alpine_staging_files_{{
+      randomid }}/boot/syslinux/isohdpfx.bin -c boot/syslinux/boot.cat -b boot/syslinux/isolinux.bin -no-emul-boot -boot-load-size
+      4 -boot-info-table /home/isos/alpine_staging_files_{{ randomid }}
+  register: repack
+  changed_when: repack.rc == 0
+  failed_when: not repack.rc == 0
+
+- name: "install : openbsd : alpine : clean up"
+  ansible.builtin.set_fact:
+    virt_garbagelist: "{{ virt_garbagelist + [ item ] }}"
+  loop:
+    - /home/isos/alpine_staging_files_{{ randomid }}
+
+- name: "install : alpine : alpine : start VM"
+  ansible.builtin.shell: virsh list | grep {{ vm.name }} || virsh start {{ vm.name }} || virsh list --all | grep {{ vm.name }} || virsh define /etc/libvirt/qemu/{{ vm.name }}.xml; sleep 2
+
+# sanity check, at least for now
+- name: "install : alpine : check VM is running"
+  ansible.builtin.shell: virsh list | grep {{ vm.name }}
+
+- name: "install : alpine : alpine : wait for the vm to boot"
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+# we still need to to manually select A at the install prompt
+# here the challenge is that virsh console requires a full tty
+# we work around it by opening it in a detached screen and sending a command to that
+- name: "install : alpine : alpine : execute autoinstall" # noqa risky-shell-pipe
+  ansible.builtin.shell: screen -dmS {{ vm.name }} virsh console {{ vm.name }} && sleep 1
+  changed_when: false
+
+- name: "install : alpine : alpine : exec autoinstall II"
+  ansible.builtin.shell: screen -S {{ vm.name }} -X stuff "/media/cdrom/alpseed.sh\n" && sleep 1
+  changed_when: false
+
+- name: "install : alpine : alpine : wait for install"
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+- name: "install : alpine : alpine : cleanup screen"
+  ansible.builtin.shell: screen -X -S {{ vm.name }} kill
+  changed_when: false
+

@@ -1,0 +1,4 @@
+---
+- name: "alpine : k3s"
+  include_tasks: k3s.yaml
+  when: apps.k3s is defined

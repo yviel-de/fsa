@@ -1,0 +1,9 @@
+<network>
+  <name>public</name>
+{% if uuid != "" %}
+  <uuid>{{ uuid.stdout }}</uuid>
+{% endif %}
+  <forward mode='bridge'/>
+  <bridge name='br0'/>
+</network>
+

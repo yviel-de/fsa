@@ -1,0 +1,31 @@
+---
+#- name: "install : alpine : configure VMs"
+#  ansible.builtin.template:
+#    src: ../../vms/templates/kvm.vms.xml.j2
+#    dest: /etc/libvirt/qemu/{{ item.name }}.xml
+#    mode: 0600
+#  loop: "{{ virt.vms }}"
+#  when: item.install is defined
+#  notify:
+#    - kvm_reload
+#
+#- name: "install : alpine : stop if running" # noqa risky-shell-pipe
+#  ansible.builtin.shell: if virsh list | grep {{ item.name }} | grep running; then virsh destroy {{ item.name }}; fi
+#  loop: "{{ virt.vms }}"
+#  when: item.install | default(false)
+#  failed_when: false
+#  changed_when: false
+
+- name: "install : alpine : install alpine"
+  include_tasks: install_alpine_alpine.yaml
+  loop: "{{ virt.vms }}"
+  loop_control:
+    loop_var: vm
+  when: vm.install is defined and vm.install.os == 'alpine'
+
+- name: "install : alpine : install openbsd"
+  include_tasks: install_alpine_openbsd.yaml
+  loop: "{{ virt.vms }}"
+  loop_control:
+    loop_var: vm
+  when: vm.install is defined and vm.install.os == 'openbsd'

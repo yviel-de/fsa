@@ -12,7 +12,7 @@
 - name: "sshd : deny passwd ssh"
   ansible.builtin.lineinfile:
     path: /etc/ssh/sshd_config
-    line: PasswordAuthentication yes
+    line: PasswordAuthentication no
     regexp: ^PasswordAuthentication
   notify:
     - sshd_syntax

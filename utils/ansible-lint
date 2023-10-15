@@ -1,0 +1,13 @@
+---
+# no deps
+offline: true
+exclude_paths:
+    # molecule files are often not formatted "right"
+  - roles/*/molecule/*/*.yaml
+    # pipeline config
+  - .drone.yml
+use_default_rules: true
+skip_list:
+  - experimental
+  - name[casing]
+  - meta-no-info

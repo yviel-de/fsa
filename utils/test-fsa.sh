@@ -1,12 +1,54 @@
-#!/bin/sh
+#!/bin/bash
 #
-# performs testing for the fsa codebase
-# requires linux-sed, time, script, and running pipenv shell
-# usage: test.sh [lint/test] [role1 role2 role3]
-# if nothing is specified everything is done
+# wrapper utility used for testing FSA
+# it is ran against a libvirt host and vagrant boxes
+# - generates molecule configs from test-config.yaml
+# - using a template from molecule
+# - lints with optional auto-fix
+# - executes molecule scenarios
+#
+# it is designed to be ran against a libvirt target host using already loaded vagrant boxes
+#
+# requires pipenv shell
+# expects ./utils/ansible-lint
+#
 
+function usage {
+    cat << EOF
+Usage: test-fsa.sh ACTION [scenario|role] [--correct] [--boxname boxname] [--virthost myhost]
+
+    ACTION may be:
+    - lint      : run ansible-lint against one or more roles
+    - test      : run molecule against one or more scenarios
+    - template  : template out molecule scenario configs
+
+    If no role/scenario is specified, all will be linted/tested/templated.
+
+    --correct causes lint to try to autocorrect issues
+    --boxname specifies the vagrant box to use
+    --virthost specifies the name of the remote libvirt host
+
+    See molecule/templates/test-config.example for templating options
+EOF
+    exit 0
+}
+
+if ! which bc >/dev/null 2>&1; then
+    echo "Please install bc."
+    exit 1
+fi
+
+# pipenv check
 if [ -z $VIRTUAL_ENV ]; then
-    echo "Please run pipenv shell before executing tests"
+    pipenv="pipenv run"
+else
+    pipenv=""
+#    echo "Please run pipenv shell before executing tests"
+#    exit 1
+fi
+
+if ! [ -d ./roles ]; then
+    echo "Please run from the main folder"
     exit 1
 fi
 
@@ -24,121 +66,139 @@ function prettyprint {
     # bottom box only for molecule which produces a f* ton of output
     if [ "$action" == "test" ]; then echo "$box"; fi
     echo "$pad $string"
-    if [ "$action" == "test" ]; then echo "$box"; fi
 }
 
-# we're using this to collect errors and print them together
-errorlist="dummy,dummy,dummy"
-function error {
-    if ! [ "$1" == "results" ]; then
-        # register the error
-        role="$1"
-        step="$2"
-        substep="$3"
-        errorlist="$errorlist;$role,$step,$substep"
-    else
-        if [ "$errorlist" != "dummy,dummy,dummy" ]; then
-            # if any errors, output and quit
-            prettyprint 2 "The following failures have occurred:"
-            for failure in $(echo "$errorlist" | tr ';' '\n' | grep -v 'dummy,dummy,dummy'); do
-                role=$(echo $failure | cut -d ',' -f1)
-                step=$(echo $failure | cut -d ',' -f2)
-                substep=$(echo $failure | cut -d ',' -f3)
-                echo "## - $role failed $step $substep"
-            done
-            echo ""
-            echo "## The failures have been logged in the roles' folders."
+# not much there to parse, this is mostly sanity checking
+function parse_args {
+    action="$1"
+    # we might have no args so redir stderr
+    shift 2>/dev/null
+    if [ "$action" == "lint" ]; then
+        if [ "$1" == "" ]; then
+            # no role specified, do all
+            lintroles=$(find ./roles/ -maxdepth 1 -type d | cut -d '/' -f3 | tr '\n' ' ')
+        elif [ -d ./roles/"$1" ]; then
+            lintroles="$1"
+        else
+            echo "Error: Invalid role specified for lint."
             exit 1
         fi
-    fi
-}
-
-# we're using this to keep error logs
-function record {
-    # we're already in the `for role in` loop
-    # but better safe than sorry
-    name="$1"
-    shift
-    if [ "$cmdname" == "molecule" ]; then
-        cmdname="$1"
-        cmdparam="$2"
-        filename="$cmdname-$cmdparam.log"
-    else
-        cmdname="$1"
-        cmdparam=""
-        filename="$cmdname.log"
-    fi
-    fullcmd="$@"
-    logfile="$filename"
-    script -efq -c "$fullcmd 2>&1" "$logfile" 2>/dev/null
-    if [ "$?" -eq 0 ]; then
-        # clean up the logfile if successful
-        rm "$logfile"
-    else
-        # into the errorlist
-        error $name $cmdname $cmdparam
-    fi
-}
-
-# linting/testing switch
-if [ "$1" == "lint" ]; then
-    lintonly="true"
-    shift
-elif [ "$1" == "test" ]; then
-    testonly="true"
-    shift
-fi
-
-pwd="$(pwd)"
-
-# if no role name is given we do all
-if [ "$#" == 0 ]; then
-    roles="$(find roles/ -maxdepth 1 -type d | sed 's/roles\///g' | grep -v '^$')"
-else
-    roles="$@"
-fi
-rolecount="$(echo $roles | wc -w)"
-
-prettyprint 4 "STARTING TESTING RUN"
-echo "Found $rolecount roles to test"
-
-# we go one role at a time esp bc of testing resources, cant run 100 VMs in parallel
-if ! [ "$testonly" == "true" ]; then
-    action=lint
-    for role in $roles; do
-        prettyprint 2 "Linting Role $role"
-        #record $role yamllint . -c $pwd/.yamllint
-        #record $role ansible-lint -x yaml --write=all
-        record $role ansible-lint roles/$role -c ./.ansible-lint
-    done
-fi
-error results
-
-if ! [ "$lintonly" == "true" ]; then
-    action=test
-    for role in $roles; do
-        cd roles/$role
-        if [ -d "molecule" ]; then
-            prettyprint 4 "Testing role $role"
-            prettyprint 2 "Destroying previous state"
-            record $role molecule destroy
-            prettyprint 2 "Creating test instances"
-            record $role molecule create
-            prettyprint 2 "Applying role"
-            record $role molecule converge
-            prettyprint 2 "Verifying idempotence"
-            record $role molecule idempotence
-            prettyprint 2 "Executing tests"
-            record $role molecule verify
-            prettyprint 2 "Destroying environment"
-            record $role molecule destroy
+        # execute the linting functions
+        if [ "$2" == "--correct" ]; then
+            biglint
         else
-            prettyprint 4 "No role tests configured"
+            smalllint
         fi
-        cd $pwd
-    done
-fi
-error results
+    elif echo "$action" | grep -qE 'template|test'; then
+        if [ "$1" == "" ]; then
+            # no scenario specified, do all
+            testscenario=$(find ./molecule/ -maxdepth 1 -type d | cut -d '/' -f3 | tr '\n' ' ')
+        elif [ -d ./molecule/"$1" ]; then
+            testscenario="$1"
+            shift
+        else
+            echo "Error: Invalid scenario specified for template/test."
+            exit 1
+        fi
+        # check the rest of the cli options, relevant for template
+        while [ $# -gt 0 ]; do
+            case "$1" in
+                --virthost)
+                    export virthost="$2"
+                    shift 2
+                    ;;
+                --boxname)
+                    export boxname="$2"
+                    shift 2
+                    ;;
+                *)
+                    echo "Argument $1 not recognized"
+                    usage
+                    ;;
+            esac
+        done
+        if [ "$action" == "test" ]; then
+            # execute testing function
+            do_test
+        elif [ "$action" == "template" ]; then
+            # template out the things
+            for scenario in $testscenario; do
+                template
+            done
+        fi
+    else
+        usage
+    fi
+}
 
-prettyprint 4 "TESTING RUN COMPLETE"
-echo "No errors detected"
+function smalllint {
+    prettyprint 2 "Linting role $role"
+    ansible-lint ./roles/"$role" -c ./utils/ansible-lint --exclude=./roles/"$role"/molecule/*/test-config.yaml
+}
+
+function biglint {
+    prettyprint 2 "Autocorrecting role $role"
+    # write while excluding line-length (which doesn't work right)
+    ansible-lint ./roles/"$role" -c ./utils/ansible-lint --skip-list=experimental,name[casing],meta-no-info,yaml --write 2>&1 | grep Modified
+    # and run the actual check
+    smalllint
+}
+
+function template {
+    [ ! -f ./molecule/"$scenario"/converge.yml ] \
+        || grep -q "AUTO-GENERATED by test-fsa.sh" ./molecule/"$scenario"/converge.yml \
+        && converge=true
+
+    [ ! -f ./molecule/"$scenario"/molecule.yml ] \
+        || grep -q "AUTO-GENERATED by test-fsa.sh" ./molecule/"$scenario"/molecule.yml \
+        && build=true
+
+    if [ "$converge" == "true" ]; then
+        # playbook not always included, so we just template it out
+        cat << EOF > ./molecule/"$scenario"/converge.yml
+---
+# AUTO-GENERATED by test-fsa.sh - remove this comment to exempt
+- name: Converge
+  hosts: all
+  roles:
+EOF
+        # we include everything just like fsa.sh does
+        for role in $(find ./roles/ -maxdepth 1 -type d | cut -d '/' -f3 | grep -v ^fsa_ | tr '\n' ' '); do
+            echo "    - $role" >> ./molecule/"$scenario"/converge.yml
+            #echo "        - $role" >> ./molecule/"$scenario"/converge.yml
+        done
+        converge="" # unset for next iteration
+    fi
+
+    if [ "$build" == "true" ]; then
+        # check for libvirt
+    	[ ! $(which virsh) ] && [ "$virthost" == "" ] \
+    	    && echo "Error: libvirt not installed locally and remote host not specified." \
+    	    && exit 1
+        # make sure we have something that at least resembles a commitID
+        export commitid="$(git log -n 1 | head -n 1 | sed -e 's/^commit //' | head -c 8)"
+        if [ "$commitid" == "" ]; then
+            export commitid="$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 8 | head -n 1)"
+        fi
+        # also explicitly export the vars for j2 when it's unset
+        [ "$virthost" == "" ] && export virthost=""
+        [ "$boxname" == "" ] && export boxname=""
+
+        # we template out the molecule.yml
+        $pipenv j2 --filters=./molecule/templates/custom_filters.py ./molecule/templates/molecule.yml.j2 ./molecule/"$scenario"/test-config.yaml -o ./molecule/"$scenario"/molecule.yml
+        build=""    # unset for next iteration
+    fi
+}
+
+# executes molecule
+function do_test {
+    for scenario in $testscenario; do
+        prettyprint 4 "Testing scenario $scenario"
+        template
+        # have to reset as we're retemplating the configs
+        #molecule reset -s "$scenario" >/dev/null
+        $pipenv molecule test -s "$scenario"
+    done
+}
+parse_args "$@"
+

@@ -1,9 +1,4 @@
 ---
-- name: "openbsd : vmd : architecture check"
-  ansible.builtin.fail:
-    msg: VMD only on x64... sorry
-  when: ansible_facts.machine != 'amd64'
-
 - name: "openbsd : vmd : template the config"
   ansible.builtin.template:
     src: vm.conf.j2

@@ -1,0 +1,4 @@
+---
+- name: "obsd : acme-client"
+  include_tasks: openbsd_acme.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

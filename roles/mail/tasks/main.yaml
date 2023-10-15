@@ -1,4 +1,4 @@
 ---
-- name: "openbsd : smtpd"
-  include_tasks: openbsd_smtpd.yaml
-  when: mail is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "mail server"
+  include_tasks: mail.yaml
+  when: mail is defined

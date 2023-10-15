@@ -1,7 +1,9 @@
-# fsa tempfiles
-*.fsa.tmp
-# pinned in requirements.txt
-Pipfile
-Pipfile.lock
-# utils/test-fsa.sh logfiles
-roles/*/*.log
+# utils/fsa.sh tempfiles
+tmp.*
+# k8s-helm values files
+values-*.yaml
+# files from fsa-molecule
+molecule/*/molecule.yml
+molecule/*/converge.yml
+# terraform
+terraform/.terraform

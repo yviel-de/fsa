@@ -1,4 +1,4 @@
 ---
-- name: "obsd : run wireguard"
-  include_tasks: openbsd_wireguard.yaml
-  when: net.vpn is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "setup vpn"
+  include_tasks: vpn.yaml
+  when: net.vpn is defined

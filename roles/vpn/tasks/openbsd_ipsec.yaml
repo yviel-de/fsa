@@ -1,0 +1,10 @@
+---
+- name: "Set up iked config"
+  ansible.builtin.template:
+    src: iked.conf.j2
+    dest: /etc/iked.conf
+    mode: 0600
+  notify:
+    - iked_syntax
+    - iked_restart
+

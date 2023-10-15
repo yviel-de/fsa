@@ -1,0 +1,9 @@
+---
+- name: "obsd : run wireguard"
+  include_tasks: openbsd_wireguard.yaml
+  when: net.vpn.type == "wireguard" and ansible_facts['os_family']|lower == 'openbsd'
+
+# UNFINISHED
+#- name: "obsd : setup ipsec"
+#  include_tasks: openbsd_ipsec.yaml
+#  when: net.vpn.type == "ipsec" and ansible_facts['os_family']|lower == 'openbsd'

@@ -1,0 +1,43 @@
+---
+- name: "Install Radicale and its dependencies (obsd)"
+  community.general.openbsd_pkg:
+    name:
+      - 'radicale--'
+    state: present
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "Install Radicale and its dependencies (alpine)"
+  community.general.apk:
+    name:
+      - radicale
+    state: latest
+  when: ansible_facts['os_family']|lower == 'alpine'
+
+- name: "Create filesystem folder"
+  ansible.builtin.file:
+    path: "{{ apps.webdav.fs_folder }}" 
+    state: directory
+    owner: _radicale
+    group: _radicale
+  when: apps.webdav.fs_folder is defined
+
+- name: "Create Radicale users"
+  community.general.htpasswd:
+    create: true
+    crypt_scheme: bcrypt
+    name: "{{ item.name }}"
+    password: "{{ item.pass }}"
+    path: /etc/radicale/users
+    owner: _radicale
+    group: _radicale
+    mode: 0600
+  loop: "{{ apps.webdav.users }}"
+  when: apps.webdav.users is defined
+
+- name: "Template out Radicale config"
+  ansible.builtin.template:
+    src: templates/config.j2
+    dest: /etc/radicale/config
+  notify:
+    - radicale_restart
+

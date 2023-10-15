@@ -1,11 +1,18 @@
-# `install` - yviel's FSA v0.2.0
-This role auto-installs choice OSses on VMs.
+# `install` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role auto-installs predefined operating systems on local VMs.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 When called, it activates the following roles:
@@ -21,7 +28,7 @@ The role lives under a `virt.vms` key.
 
 Please note that once the install process has run, you will need to remove those directives for any subsequent runs.
 
-```
+```yaml
 virt:
   vms:
       # we define a minimal VM
@@ -40,14 +47,15 @@ virt:
 ### Reference
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
-|`virt.vms.install`|Parent|No|(none)|Activates `install`|
-|`virt.vms.install.os`|String|Yes|(none)|`openbsd` or `alpine` (debian coming)|
+|`virt.vms.install`|Parent|No|(none)|Auto-installs an OS on the guest|
+|`virt.vms.install.os`|String|Yes|(none)|`openbsd` or `alpine`, installs latest version|
 |`virt.vms.install.time`|String|Yes|(none)|Timezone to set up|
 |`virt.vms.install.key`|String|Yes|(none)|Path to pubkey to authorize for root|
 |`virt.vms.install.layout`|String|if `os: alpine`|(none)|Keyboard layout to set up|
 |`virt.vms.install.rootpw`|String|No|(none)|Root user's PW hash, use `fsa -g`|
+|`virt.vms.install.template`|Bool|No|`false`|Prepares VM for exporting to Vagrantbox|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also:
  - [virt](../virt/)

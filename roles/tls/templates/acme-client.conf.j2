@@ -8,15 +8,15 @@ authority letsencrypt-staging {
         account key "/etc/acme/letsencrypt-staging-privkey.pem"
 }
 
-domain {{ ansible_fqdn }} {
-        domain key "/etc/ssl/private/{{ ansible_fqdn }}.key"
-        domain certificate "/etc/ssl/{{ ansible_fqdn }}.crt"
-        domain full chain certificate "/etc/ssl/{{ ansible_fqdn }}.fullchain.pem"
+domain {{ base.name | default(ansible_fqdn) }} {
+        domain key "/etc/ssl/private/{{ base.name | default(ansible_fqdn) }}.key"
+        domain certificate "/etc/ssl/{{ base.name | default(ansible_fqdn) }}.crt"
+        domain full chain certificate "/etc/ssl/{{ base.name | default(ansible_fqdn) }}.fullchain.pem"
         sign with letsencrypt
 }
 {% if web.sites is defined %}
 {% for site in web.sites %}
-{% if site != ansible_fqdn %}
+{% if site != base.name | default(ansible_fqdn) %}
 {% if site.tls is defined %}
 domain {{ site.name }} {
 {% if site.alts is defined %}
@@ -55,4 +55,17 @@ domain {{ domain }} {
 {% endif %}
 {% endfor %}
 {% endfor %}
+{% endif %}
+
+{% if apps.webdav.tls is defined %}
+domain {{ apps.webdav.domain }} {
+        domain key "/etc/ssl/private/{{ apps.webdav.domain }}.key"
+        domain certificate "/etc/ssl/{{ apps.webdav.domain }}.crt"
+        domain full chain certificate "/etc/ssl/{{ apps.webdav.domain }}.fullchain.pem"
+{% if apps.webdav.tls == 'dev' %}
+        sign with letsencrypt-staging
+{% elif apps.webdav.tls == 'prod' %}
+        sign with letsencrypt
+{% endif %}
+}
 {% endif %}

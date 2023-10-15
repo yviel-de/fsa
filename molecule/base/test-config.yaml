@@ -1,0 +1,28 @@
+---
+machines:
+  - name: sshd-cron
+    box: obsd72
+    vars:
+      net:
+        ifaces:
+          # leave 1 dhcp interface for vagrant
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.5
+            netmask: 255.255.255.0
+      base:
+        name: sshd-cron
+        sound: true
+        users:
+          - name: user
+            sudo: true
+        sshd:
+          enabled: true
+          guard: true
+        cron:
+          entries:
+            - schedule: daily
+              user: user
+              command: echo Hello World
+        autoupdate: true
+

@@ -1,0 +1,5 @@
+---
+- name: template VMs
+  include_tasks: template_linux.yaml
+  when: item|map(attribute='install')|selectattr('template', 'defined')|map(attribute='template')[0]|default(false) and ( ansible_distribution|lower == 'alpine' or ansible_distribution|lower == 'debian' )
+  loop: "{{ virt.vms }}"

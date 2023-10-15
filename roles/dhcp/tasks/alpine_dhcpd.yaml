@@ -1,0 +1,21 @@
+---
+- name: "alpine : dhcpd : install the package"
+  community.general.apk:
+    name: dhcp
+    state: present
+
+- name: "alpine : dhcpd : template the config"
+  ansible.builtin.template:
+    src: dhcpd.conf.j2
+    dest: /etc/dhcp/dhcpd.conf
+    mode: "0600"
+  notify:
+    - iscdhcpd_syntax
+    - dhcpd_restart
+
+- name: "alpine : dhcpd : disable dnsmasq"
+  ansible.builtin.service:
+    name: dnsmasq
+    state: stopped
+    enabled: false
+# todo: logrotate

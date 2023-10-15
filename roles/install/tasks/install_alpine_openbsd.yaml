@@ -1,0 +1,55 @@
+---
+- name: "install : alpine : openbsd : install helpers"
+  community.general.apk:
+    name:
+      - screen
+    state: present
+
+- name: "install : alpine : openbsd : reload"
+  ansible.builtin.meta: flush_handlers
+
+# openbsd is installed through dhcpd indicating a response file served through http
+- name: "install : alpine : openbsd : configure VM"
+  ansible.builtin.template:
+    src: obsd_autoinstall.conf.j2
+    dest: /var/www/fsa-virt/{{ vm.name }}-install.conf
+    mode: 0644
+
+- name: "install : alpine : openbsd : start VM"
+  ansible.builtin.shell: virsh list | grep {{ vm.name }} || virsh start {{ vm.name }} || virsh list --all | grep {{ vm.name }} || virsh define /etc/libvirt/qemu/{{ vm.name }}.xml && virsh start {{ vm.name }}; sleep 2
+
+# sanity check, at least for now
+- name: "install : alpine : check VM is running"
+  ansible.builtin.shell: virsh list | grep {{ vm.name }}
+
+- name: "install : alpine : openbsd : wait for the vm to boot"
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+# we still need to to manually select A at the install prompt
+# here the challenge is that virsh console requires a full tty
+# we work around it by opening it in a detached screen and sending a command to that
+- name: "install : alpine : openbsd : execute autoinstall" # noqa risky-shell-pipe
+  ansible.builtin.shell: screen -dmS {{ vm.name }} virsh console {{ vm.name }} && sleep 1
+  changed_when: false
+
+- name: "install : alpine : openbsd : exec autoinstall II"
+  ansible.builtin.shell: screen -S {{ vm.name }} -X stuff "a\n" && sleep 1
+  changed_when: false
+
+- name: "install : alpine : openbsd : wait for install"
+  ansible.builtin.wait_for:
+    timeout: 30
+  delegate_to: localhost
+  become: false
+
+- name: "install : alpine : openbsd : cleanup screen"
+  ansible.builtin.shell: screen -X -S {{ vm.name }} kill
+  changed_when: false
+
+- name: "install : alpine : openbsd : cleanup installfile"
+  ansible.builtin.file:
+    path: /var/www/fsa-virt/{{ vm.name }}-install.conf
+    state: absent

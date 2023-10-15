@@ -1,0 +1,25 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+ansible = "*"
+netaddr = "*"
+kubernetes-client = "*"
+
+[dev-packages]
+# https://github.com/ansible-community/molecule/issues/3945
+molecule = "==5.0.0"
+# https://github.com/ansible-community/molecule-plugins/issues/158
+molecule-plugins = {extras = ["vagrant"], version = "==23.4.0"}
+# remove python-vagrant and ansible-compat once molecule bugs are fixed
+python-vagrant = "*"
+# https://github.com/ansible-community/molecule/issues/3903
+ansible-compat = "==3.0.2"
+pytest-testinfra = {extras = ["ansible"], version = "*"}
+# required for testinfra, not pulled for some reason
+exceptiongroup = "*"
+ansible-lint = "*"
+yamllint = "*"
+j2cli = "*"

@@ -1,9 +1,10 @@
 ---
-# required to determine version
-- name: "prereqs : alpine : install curl"
+# curl required for version
+- name: "prereqs : alpine : install helpers"
   community.general.apk:
     name:
       - curl
+      - dvd+rw-tools
     state: present
     update_cache: true
 

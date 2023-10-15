@@ -3,3 +3,4 @@ dependencies:
   - role: net
   - role: syslog
   - role: cron
+  - role: users

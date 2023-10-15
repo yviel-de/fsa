@@ -1,8 +1,7 @@
 ---
 - name: "gitea : alpine : enable community repo"
-  ansible.builtin.shell: set -o pipefail; if ! cat /etc/apk/repositories | grep -vE '^\#|^$' | grep -q community; then line=$(cat
-    /etc/apk/repositories | grep -vE '^\#|^$' | head -1); echo $line | sed 's/main/community/g' >> /etc/apk/repositories
-    && echo changed; fi
+  ansible.builtin.shell: set -o pipefail; if ! cat /etc/apk/repositories | grep -vE '^\#|^$' | grep -q community; then line=$(cat /etc/apk/repositories | grep -vE
+    '^\#|^$' | head -1); echo $line | sed 's/main/community/g' >> /etc/apk/repositories && echo changed; fi
   register: community_repo
   changed_when: community_repo.stdout == "changed"
 
@@ -13,13 +12,20 @@
     state: present
     update_cache: true
 
+- name: "gitea : alpine : template defaults"
+  ansible.builtin.template:
+    src: gitea.ini.j2
+    dest: /etc/gitea/app.ini
+    mode: "0600"
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
+
 - name: "gitea : alpine : add settings"
   community.general.ini_file:
     path: /etc/gitea/app.ini
     section: "{{ item.section }}"
     option: "{{ item.option }}"
     value: "{{ item.value }}"
-    mode: 0600
+    mode: "0600"
   loop: "{{ apps.gitea.config }}"
   when: apps.gitea.config is defined
   notify:

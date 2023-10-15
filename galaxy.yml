@@ -1,0 +1,22 @@
+# this file is required in order to be able to install FSA as an ansible collection
+namespace: "yviel-de"
+name: "fsa"
+version: "0.3.0"
+readme: "README.md"
+authors:
+    - "yviel (https://yviel.de)"
+tags:
+    - fsa
+    - molecule
+    - openbsd
+    - loadbalancer
+    - webserver
+    - mail
+    - email
+    - dhcp
+    - dns
+    - hypervisor
+    - vmd
+    - networking
+    - vpn
+repository: "https://github.com/yviel-de/fsa.git,v0.3.0"

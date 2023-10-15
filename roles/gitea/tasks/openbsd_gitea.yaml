@@ -4,6 +4,8 @@
     name:
       - gitea
     state: present
+  notify:
+    - gitea_restart
 
 - name: "gitea : openbsd : create configdir"
   ansible.builtin.file:
@@ -11,22 +13,28 @@
     state: directory
     owner: _gitea
     group: _gitea
-    mode: 0755
+    mode: "0755"
+  notify:
+    - gitea_restart
 
 - name: "gitea : openbsd : template defaults"
   ansible.builtin.template:
     src: gitea.ini.j2
-    dest: /var/gitea/custom/conf/app.ini
-  changed_when: false
+    dest: /etc/gitea/app.ini
+    mode: "0600"
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
 
 - name: "gitea : openbsd : add settings"
   community.general.ini_file:
-    path: /var/gitea/custom/conf/app.ini
-    section: "{{ item.section }}"
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
-    mode: 0600
+    path: /etc/gitea/app.ini
+    section: "{{ configitem.section }}"
+    option: "{{ configitem.option }}"
+    value: "{{ configitem.value }}"
+    mode: "0600"
   loop: "{{ apps.gitea.config }}"
+  loop_control:
+    loop_var: configitem
   when: apps.gitea.config is defined
   notify:
     - gitea_restart
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"

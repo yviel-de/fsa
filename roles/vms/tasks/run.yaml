@@ -3,3 +3,8 @@
 - name: "run : linux libvirt"
   include_tasks: run_linux.yaml
   when: ansible_facts['os_family']|lower == 'debian' or ansible_facts['os_family']|lower == 'alpine'
+
+- name: "run : openbsd : reboot VMs"
+  ansible.builtin.shell: "if vmctl show {{ item.name }} | grep -q {{ item.name }}; then vmctl stop {{ item.name }}; while true; do if vmctl show {{ item.name }} | grep stopped; then break; else sleep 1; fi; done; vmctl start {{ item.name }}; fi"
+  loop: "{{ virt.vms }}"
+  when: ansible_facts['os_family']|lower == 'openbsd' and (item.reboot | default(false))

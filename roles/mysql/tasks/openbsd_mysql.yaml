@@ -15,14 +15,16 @@
 - name: "mysql : openbsd : add settings"
   community.general.ini_file:
     path: /etc/my.cnf
-    section: "{{ item.section }}"
-    option: "{{ item.option }}"
-    value: "{{ item.value }}"
+    section: "{{ config.section }}"
+    option: "{{ config.option }}"
+    value: "{{ config.value }}"
     mode: 0640
   loop: "{{ apps.mysql.config }}"
+  loop_control:
+    loop_var: config
   when: apps.mysql.config is defined
   notify:
-    - mariadb_restart
+    - mysqld_restart
 
 - name: "mysql : openbsd : start & enable the service"
   ansible.builtin.service:

@@ -1,0 +1,38 @@
+---
+# no tls for now, barebones only
+- name: "alpine : nginx : install packages"
+  community.general.apk:
+    name:
+      - nginx
+      - openssl
+    state: present
+
+- name: "alpine : nginx : template out main config"
+  ansible.builtin.template:
+    src: nginx.main.conf.j2
+    dest: /etc/nginx/nginx.conf
+  notify:
+    - nginx_restart
+
+- name: "alpine : nginx : generate dh params"
+  ansible.builtin.shell: "[ -d /etc/ssl/nginx ] || mkdir -p /etc/ssl/nginx; ! [ -f /etc/ssl/nginx/dh2048.pem ] && openssl dhparam -out /etc/ssl/nginx/dh2048.pem 2048 >/dev/null 2>&1 && echo 'generated'"
+  register: dhparams_gen
+  changed_when: dhparams_gen.stdout == 'generated'
+  failed_when: false
+
+- name: "alpine : nginx : setup virt autoinstall root"
+  ansible.builtin.file:
+    path: /var/www/fsa-virt
+    state: directory
+    owner: root
+    group: daemon
+    mode: 0755
+  when: virt.vms is defined and virt.vms|selectattr('install', 'defined')|length > 0
+  notify:
+    - nginx_syntax
+    - nginx_restart
+
+- name: "alpine : nginx : start the service"
+  ansible.builtin.service:
+    name: nginx
+    state: started

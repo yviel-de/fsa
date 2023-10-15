@@ -1,5 +1,4 @@
 ---
 - name: "openbsd : rspamd"
-  include_tasks: openbsd_rspamd.yaml
-  when: (mail is defined and mail.listen|selectattr('filter', 'eq', 'spam')|length > 0) and ansible_facts['os_family']|lower
-    == 'openbsd'
+  ansible.builtin.include_tasks: filter.yaml
+  when: mail is defined and mail.listen|selectattr('filter', 'eq', 'spam')|length > 0

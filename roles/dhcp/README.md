@@ -1,13 +1,21 @@
-# `dhcp` - yviel's FSA v0.2.0
-This role sets up a dhcpd server.
+# `dhcp` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Simple Example](#simple-example)
     - [Restrictive Example](#restrictive-example)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up a DHCP server for automatically configuring IP addresses for network devices.
+
+*Note*: If you want to run your own DHCP, you should turn off your router's as they will otherwise conflict.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -60,21 +68,21 @@ net:
 ```
 
 ### Reference
-|Key|Type|Required|Example Value|Default Value|Action|
+|Key|Type|Required|Default|Summary|
 |--|--|--|--|--|--|
-|`net.ifaces.dhcp.range`|String|Yes|`10.0.0.2 10.0.0.127`|(none)|IP range of the leases to hand out|
-|`net.ifaces.dhcp.routers`|String|Yes|`10.0.0.1`|(none)|Default gateway to give to clients|
-|`net.ifaces.dhcp.domain`|String|No|`example.local`|`fsa.local`|Domain to hand out to clients|
-|`net.ifaces.dhcp.dnssrv`|String|No|`10.0.0.1`|(none)|DNS server addr to give to clients|
-|`net.ifaces.dhcp.lease_time`|Integer|No|`21600`|about 24hrs|Lifetime of the leases handed out|
-|`net.ifaces.dhcp.deny_unknown`|String|No|`true`|`false`|Whether to deny unknown clients|
-|`net.ifaces.dhcp.leases`|Null|No|(none)|(none)|Any DHCP leases to define|
-|`net.ifaces.dhcp.leases.name`|String|Yes|`myclienthost`|(none)|Hostname of the client|
-|`net.ifaces.dhcp.leases.ip`|String|Yes|`10.0.0.42`|(none)|IP address to assign|
-|`net.ifaces.dhcp.leases.mac`|String|Yes|`00:de:ad:be:ef:00`|(none)|MAC address of the client|
-|`net.ifaces.dhcp.leases.dns`|String|No|`false`|`true`|If a DNS server is setup, register with it|
+|`net.ifaces.dhcp.range`|String|Yes|(none)|IP range to hand out leases for|
+|`net.ifaces.dhcp.routers`|String|No|the `iface`'s `addr`|Default gateway to give to clients|
+|`net.ifaces.dhcp.domain`|String|No|`fsa.local`|Domain to hand out to clients|
+|`net.ifaces.dhcp.dnssrv`|String|No|the `iface`'s `addr`|DNS resolver to hand out to clients|
+|`net.ifaces.dhcp.lease_time`|Int|No|about 24hrs|Lifetime of leases, in seconds|
+|`net.ifaces.dhcp.deny_unknown`|Bool|No|`false`|Whether to deny unknown clients|
+|`net.ifaces.dhcp.leases`|Dict|No|(none)|Any specific leases to define|
+|`net.ifaces.dhcp.leases.name`|String|Yes|(none)|Hostname of the specified client|
+|`net.ifaces.dhcp.leases.ip`|String|Yes|(none)|IP address to assign to it|
+|`net.ifaces.dhcp.leases.mac`|String|Yes|(none)|MAC i.E. hardware address of the client|
+|`net.ifaces.dhcp.leases.dns`|Bool|No|`true`|If a local DNS server exists, publish the clients on it|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [dns](../dns)

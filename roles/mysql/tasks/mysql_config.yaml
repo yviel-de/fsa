@@ -20,9 +20,3 @@
 - name: "mysql : import : create users and dbs"
   ansible.builtin.shell: mysql < /tmp/{{ randomid }}/sql_import.sql
   changed_when: false
-
-- name: "mysql : import : clean up"
-  ansible.builtin.file:
-    path: /tmp/{{ randomid }}
-    state: absent
-  changed_when: false

@@ -1,13 +1,21 @@
-# `virt` - yviel's FSA v0.2.0
+# `virt` - yviel's FSA v0.3.0
 This role sets up VMD as a hypervisor.
 
-It creates two internal NATted networks, 172.19.24.0/24 for VMs marked `private`, and 100.92.0.1/24 for VMs used by [install](../install/) and [fsa_molecule](../fsa_molecule/).
-
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up the `vmd` or `libvirt` hypervisor.
+
+It creates two internal NATted networks, 172.19.24.0/24 and 100.92.0.1/24.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 When called, it activates the following roles:
@@ -36,10 +44,10 @@ virt:
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
 |`virt`|Parent|No|(none)|Activates `virt`|
-|`virt.bridge`|String|Yes|(none)|Interface to bind VMs to (must be defined in `net.ifaces`)|[virt]|
-|`virt.vms`|Dict|No|(none)|Activates [vms](../vms)|
+|`virt.bridge`|String|Yes|(none)|Interface to bind VMs to, as defined in `net.ifaces.name`|
+|`virt.vms`|Dict|No|(none)|Activates the `vms` role|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [vms](../vms)

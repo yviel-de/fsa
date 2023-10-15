@@ -1,0 +1,52 @@
+---
+- name: "apps : owncloud : prerequisites"
+  community.general.openbsd_pkg:
+    name: unzip--
+    state: present
+
+- name: "apps : owncloud : determine install path"
+  ansible.builtin.set_fact:
+    cloudsite: "{{ item }}"
+  when: apps.owncloud.site in item.name
+  loop: "{{ web.sites }}"
+
+- name: "apps : owncloud : web.site check"
+  ansible.builtin.fail:
+    msg: Select a valid web.site for your app
+  when: cloudsite is undefined
+
+- name: "apps : owncloud : check if already installed"
+  ansible.builtin.stat:
+    path: "/var/www{{ cloudsite.root }}/nextcloud/ocs-provider/"
+  register: cloudinstalled
+
+- name: "apps : owncloud : unpack"
+  ansible.builtin.unarchive:
+    src: https://download.nextcloud.com/server/releases/latest.zip
+    dest: /tmp/
+    remote_src: true
+  when: not cloudinstalled.stat.exists
+
+- name: "apps : owncloud : take live"
+  ansible.builtin.copy:
+    src: "/tmp/nextcloud/"
+    dest: "/var/www{{ cloudsite.root }}/nextcloud"
+    remote_src: true
+  when: not cloudinstalled.stat.exists
+
+- name: "apps : owncloud : set permissions"
+  ansible.builtin.file:
+    path: "/var/www{{ cloudsite.root }}/nextcloud/{{ item }}"
+    state: directory
+    owner: www
+    recurse: true
+  loop:
+    - config
+    - data
+    - apps
+
+#- name: "apps : owncloud : set admin users" # noqa risky-shell-pipe
+#  ansible.builtin.shell: echo {{ item.user }}:{{ item.pass }} | htpasswd -I /var/www{{ cloudsite.root }}/.auth && chown :www
+#    /var/www{{ cloudsite.root }}/.auth && chmod 0640 /var/www{{ cloudsite.root }}/.auth
+#  changed_when: false
+#  loop: "{{ apps.owncloud.admin }}"

@@ -1,11 +1,17 @@
-# `filter` - yviel's FSA v0.2.0
-This role sets up connection and spam filtering for mail.
+# `filter` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up connection and spam filtering for [mail](../mail/).
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -24,9 +30,9 @@ mail:
 ### Reference
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
-|`mail.listen.filter`|String|Yes|(none)|Filtering, `none`, `conn`ection-level or full `spam`|
+|`mail.listen.filter`|String|Yes|(none)|Filtering level: `none`, `conn`ection or full `spam`|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [mail](../mail/)

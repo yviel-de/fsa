@@ -28,23 +28,27 @@
 - name: "obsd : httpd : template websites"
   ansible.builtin.template:
     src: httpd.sites.conf.j2
-    dest: /etc/httpd.{{ item.name }}.conf
+    dest: "/etc/httpd.{{ site.name }}.conf"
     mode: 0600
   loop: "{{ web.sites }}"
+  loop_control:
+    loop_var: site
   notify:
     - httpd_syntax
     - httpd_restart
-  when: web.sites is defined and item.root is defined
+  when: web.sites is defined and site.root is defined
 
 - name: "obsd : httpd : create webroots"
   ansible.builtin.file:
-    path: /var/www{{ item.root }}
+    path: "/var/www{{ site.root }}"
     state: directory
     owner: root
     group: daemon
     mode: 0755
-  when: web.sites is defined and item.root is defined
+  when: web.sites is defined and site.root is defined
   loop: "{{ web.sites }}"
+  loop_control:
+    loop_var: site
   notify:
     - httpd_syntax
     - httpd_restart

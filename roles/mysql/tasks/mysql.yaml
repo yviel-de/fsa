@@ -1,0 +1,21 @@
+---
+- name: "apps : install MySQL"
+  include_tasks: alpine_mysql.yaml
+  when: ansible_distribution | lower == 'alpine'
+
+- name: "apps : install MySQL"
+  include_tasks: openbsd_mysql.yaml
+  when: ansible_distribution | lower == 'openbsd'
+
+- name: "apps : setup server"
+  include_tasks: mysql_config.yaml
+
+- name: "apps : import sources"
+  include_tasks: mysql_import.yaml
+  when: apps.mysql.imports is defined
+
+- name: "mysql : clean up"
+  ansible.builtin.file:
+    path: /tmp/{{ randomid }}
+    state: absent
+  changed_when: false

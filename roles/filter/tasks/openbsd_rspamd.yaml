@@ -12,7 +12,7 @@
   ansible.builtin.template:
     src: "{{ item.src }}"
     dest: "{{ item.dst }}"
-    mode: 0640
+    mode: "0640"
   loop:
     - { src: settings.conf.j2, dst: /etc/rspamd/local.d/settings.conf }
   #    - { src: dyndns.j2, dst: /etc/mail/dyndns }

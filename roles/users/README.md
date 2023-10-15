@@ -1,11 +1,17 @@
-# `users` - yviel's FSA v0.2.0
-This role sets up users and their sudo/doas permissions.
+# `users` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up users aswell as `sudo`/`doas` privileges.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 This role calls no other roles.
@@ -33,7 +39,7 @@ base:
 |`base.users.sudo`|Bool|No|`false`|Whether to give root privileges|
 |`base.users.nopass`|Bool|No|`false`|If `sudo`, whether to nopass the user|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [base](../base)

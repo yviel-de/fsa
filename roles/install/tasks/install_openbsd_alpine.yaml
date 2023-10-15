@@ -56,3 +56,4 @@
 - name: "install : openbsd : alpine : exec install script" # noqa risky-shell-pipe
   ansible.builtin.shell: for i in r o o t '' / m e d i a / c d r o m / a l p s e e d . s h ''; do echo $i | vmctl console {{ vm.name }}; sleep 0.2; done
   changed_when: false
+  throttle: 1

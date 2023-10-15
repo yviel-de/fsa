@@ -1,7 +1,7 @@
-# `vms` - yviel's FSA v0.2.0
-This role sets up 1-core VMs, either behind NAT or on the host network.
+# `vms` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Simple Example](#simple-example)
@@ -9,6 +9,13 @@ This role sets up 1-core VMs, either behind NAT or on the host network.
     - [Autoinstall](#autoinstall)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up 1-core VMs on the underlying hypervisor.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 When called, it activates the following roles:
@@ -67,18 +74,18 @@ virt:
 ### Reference
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
-|`virt.vms`|Dict|No|(none)|Activates `vms`|
+|`virt.vms`|Dict|No|(none)|Activates the `vms` role|
 |`virt.vms.name`|String|Yes|(none)|Name of the VM|
 |`virt.vms.mem`|String|Yes|(none)|RAM to allocate|
 |`virt.vms.size`|String|Yes|(none)|Disk size|
 |`virt.vms.mac`|String|No|(none)|MAC address|
-|`virt.vms.iso`|String|No|(none)|Activates [isos](../isos)|
+|`virt.vms.iso`|String|No|(none)|Absolute path to ISO file or one of `openbsd`, `alpine`, `debian`|
+|`virt.vms.reboot`|Bool|No|`false`|Stops and starts the VM|
 |`virt.vms.autostart`|Bool|No|`true`|Whether to autostart on boot|
 |`virt.vms.private`|Bool|No|`false`|If true, puts the VM behind NAT|
-|`virt.vms.template`|Bool|No|`false`|Creates a template for [fsa_molecule](../../roles/fsa_molecule)|
-|`virt.vms.install`|Parent|No|(none)|Activates [install](../../roles/install)|
+|`virt.vms.install`|Parent|No|(none)|Auto-installs an OS on the guest|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [virt](../virt)

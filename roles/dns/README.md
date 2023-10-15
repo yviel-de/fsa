@@ -1,13 +1,21 @@
-# `dns` - yviel's FSA v0.2.0
-This role sets up a DNS server using unbound.
+# `dns` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Minimal Example](#minimal-example)
     - [Limit Access, Forward Queries](#limit-access-forward-queries)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up a DNS server, which translates names like `example.com` to IP addresses to connect to.
+
+In addition to the usual features it can also perform adblocking.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -50,19 +58,20 @@ net:
 ```
 
 ### Reference
-|Key|Type|Required|Example Value|Default Value|Action|
+|Key|Type|Required|Default Value|Action|
 |--|--|--|--|--|--|
-|`net.dns.listen`|String|Yes|`0.0.0.0`|(none)|Interfaces/addresses to listen on|
-|`net.dns.access`|List|No|`- 10.0.0.0/24 allow`<br/>`- 10.0.0.72/30 deny`|(none)|Limit access to the resolver|
-|`net.dns.filter`|Bool/Null|No|`false`|`true`|Whether to adblock|
-|`net.dns.filter.whitelist`|List|No|`- analytics.google.com`<br/>`- *.doubleclick.net`|(none)|Domains to exempt from adblocking|
-|`net.dns.localzone`|String|No|`mynet.local`|(none)|Your local zone|
-|`net.dns.localdata`|List|No|`- myhost.example.com. IN A 10.0.0.1`<br/>`- txt.thing.local. IN TXT "my beautiful string"`|(none)|Arbitrary DNS entries to hand out|
-|`net.dns.forward`|Null|No|(none)|(none)|Whether to forward queries to another resolver|
-|`net.dns.forward.tls`|Bool|Yes|`false`|`true`|Forward with TLS|
-|`net.dns.forward.addr`|List|Yes|`- 9.9.9.9`<br/>`- 149.112.112.112`|(none)|Resolver addresses to forward to|
+|`net.dns`|Parent|No|(none)|Activates `dns`|
+|`net.dns.listen`|String|Yes|`127.0.0.1`|Addresses to listen on|
+|`net.dns.access`|List|No|Networks the machine is connected to|Limit access to these IPs/CIDRs|
+|`net.dns.filter`|Bool/Parent|No|`true`|Whether to adblock bad domains|
+|`net.dns.filter.whitelist`|List|No|(none)|Domains to exempt from adblocking|
+|`net.dns.localzone`|String|No|(none)|Name of the local zone|
+|`net.dns.localdata`|List|No|(none)|Any DNS entries to hand out|
+|`net.dns.forward`|Parent|No|(none)|Forward queries instead of resolving them|
+|`net.dns.forward.tls`|Bool|Yes|`true`|Forward with TLS|
+|`net.dns.forward.addr`|List|Yes|(none)|Resolver IPs to forward to|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [net](../net/)

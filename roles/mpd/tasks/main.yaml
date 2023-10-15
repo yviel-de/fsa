@@ -1,0 +1,4 @@
+---
+- name: "apps : install mpd"
+  ansible.builtin.include_tasks: mpd.yaml
+  when: apps.mpd is defined

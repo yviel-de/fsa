@@ -1,0 +1,4 @@
+---
+- name: "k8s : drone"
+  ansible.builtin.include_tasks: drone.yaml
+  when: k8s.drone is defined and fsa.k8s is defined

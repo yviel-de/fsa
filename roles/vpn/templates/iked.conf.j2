@@ -1,0 +1,12 @@
+{% if net.vpn.role == 'server' %}
+ikev2   '{{ ansible_hostname }}' passive esp \
+    from any to {{ ansible_%s | format(net.vpn.iface)['ipv4'] }} \
+{% elif net.vpn.role == 'client' %}
+ikev2   '{{ ansible_hostname }}' active esp \
+    from {{ ansible_%s | format(net.vpn.iface)['ipv4'] }} to {{ net.vpn.peer }} \
+{% endif %}
+{% for route in net.vpn.routes %}
+    from {{ route.from }} to {{ route.to }} \
+{% endfor %}
+    local {{ ansible_%s | format(net.vpn.iface)['ipv4'] }} peer {{ 'any' if net.vpn.role == 'server' else net.vpn.peer }} \
+    srcid {{ ansible_hostname }}

@@ -1,11 +1,13 @@
-﻿# Roles - yviel's FSA v0.2.0
-Roles are the individual building blocks of FSA, each providing a different functionality.
+﻿# Roles - yviel's FSA v0.3.0
+Roles are the building blocks of FSA, each providing a different functionality.
 
-They can be individually addressed using the `-r` or `--role` [fsa switch](docs/FSA_CMD.md).
+They can be individually addressed using the `-r` or `--role` [fsa switch](../docs/FSA_CMD.md).
 
 This is a collection of more complex usage examples involving multiple roles.
 
-For smaller examples view the individual role pages, for the full reference [go here](docs/REFERENCE.md)
+For smaller examples view the individual role pages, for the full reference [go here](../docs/REFERENCE.md).
+
+Even more examples can be found in the [tests](../molecule/) that FSA goes through before release.
 
 ## Table of Contents
  - [DNS+DHCP Server + VPN Gateway](#dns+dhcp-server-+-vpn-gateway)
@@ -125,7 +127,7 @@ The run will output DNS records for you to set up before it works.
 The target machine must have a public IP.
 
 #### Roles used
- - [smtpd](smtpd/)
+ - [mail](mail/)
  - [boxes](boxes/)
  - [dkim](dkim/)
  - [filter](filter/)
@@ -322,7 +324,7 @@ Automatically create virtual machines, and install an OS on them.
 #### Roles used
  - [virt](virt/)
  - [vms](vms/)
- - [iso](iso/)
+ - [isos](isos/)
  - [install](install/)
 
 #### Configuration

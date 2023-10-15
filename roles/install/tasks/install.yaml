@@ -1,10 +1,19 @@
 ---
-- name: if template is set
-  ansible.builtin.fail:
-    msg: Cannot run `install` and `template` simultaneously
-  when: item.install is defined and item.template is defined
-  loop: "{{ virt.vms }}"
+# we're gonna need those service restarts, dhcp http etc
+- name: trigger service restarts
+  ansible.builtin.meta: flush_handlers
 
 - name: "install : openbsd"
   include_tasks: install_openbsd.yaml
   when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "install : alpine"
+  include_tasks: install_alpine.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'
+
+# templating is specific to linux, will be ignored for openbsd
+- name: "template VMs (linux)"
+  include_tasks: template.yaml
+  when: virt.vms is defined and virt.vms|map(attribute='install')|selectattr('template','defined')|map(attribute='template')|select('==', true)|length > 0
+    and ansible_distribution|lower != 'openbsd'
+

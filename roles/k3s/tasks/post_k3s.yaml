@@ -1,0 +1,22 @@
+---
+# retrieves the remote k3s config and saves it locally
+- name: "retrieve k3s configs"
+  become: true
+  ansible.builtin.fetch:
+    src: /etc/rancher/k3s/k3s.yaml
+    dest: ~/.kube/config
+    flat: true
+  when: apps.k3s.type == 'server' and apps.k3s.retrieve_config | default(false)
+
+# replaces 127.0.0.1 with the ip address of the remote host
+- name: "replace address"
+  ansible.builtin.replace:
+    path: ~/.kube/config 
+    regexp: '[ ]+server: https://127.0.0.1'
+    replace: "  server: https://{{ ansible_default_ipv4.address }}"
+  delegate_to: localhost
+  when: apps.k3s.type == 'server' and apps.k3s.retrieve_config | default(false)
+
+- name: "debug - restart after completion"
+  ansible.builtin.debug:
+    msg: "Please restart the box after fsa's completion for necessary kernel modules to load"

@@ -1,5 +1,5 @@
 ---
 # mail also requires ssl
-- name: "obsd : relayd"
-  include_tasks: openbsd_relayd.yaml
-  when: web.relay is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "web relay"
+  include_tasks: relay.yaml
+  when: web.relay is defined

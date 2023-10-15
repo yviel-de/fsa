@@ -1,14 +1,10 @@
 ---
-# if the file doesn't exist don't create it
-# this is to pass the no-change-on-no-config check
-- name: "obsd : check if crontab exists"
-  ansible.builtin.stat:
-    path: /etc/crontab
-  register: crontab
-
-- name: "obsd : setup crontab"
-  ansible.builtin.template:
-    src: crontab.j2
-    dest: /etc/crontab
-    mode: 0600
-  when: ansible_facts['os_family']|lower == 'openbsd' and crontab.stat.exists
+- name: "obsd : setup cron"
+  include_tasks: cron.yaml
+  when: >
+    (base.cron is defined or base.autoupdate | default(false)) or
+    (net is defined and net.routes is defined ) or
+    (virt.vms is defined) or
+    (mail.listen is defined and mail.listen|selectattr('tls', 'defined')|length > 0) or
+    (web.sites is defined and web.sites|selectattr('tls', 'defined')|length > 0) or
+    (web.relay.frontends is defined and web.relay.frontends |selectattr('tls', 'defined')|length > 0)

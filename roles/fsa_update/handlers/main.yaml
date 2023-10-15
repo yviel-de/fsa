@@ -3,3 +3,8 @@
   ansible.builtin.debug:
     msg: Reboot required to apply system updates!
   when: syspatch.reboot_needed
+
+- name: alpine_reboot
+  ansible.builtin.debug:
+    msg: Reboot required to apply system updates!
+  when: sync.rc == 0

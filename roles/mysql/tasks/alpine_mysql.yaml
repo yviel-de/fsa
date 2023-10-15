@@ -24,6 +24,15 @@
   notify:
     - mariadb_restart
 
+- name: "mysql : alpine : allow networking"
+  ansible.builtin.lineinfile:
+    path: /etc/my.cnf.d/mariadb-server.cnf
+    line: skip-networking
+    state: absent
+  when: apps.mysql.config is defined
+  notify:
+    - mariadb_restart
+
 - name: "mysql : alpine : start & enable the service"
   ansible.builtin.service:
     name: mariadb

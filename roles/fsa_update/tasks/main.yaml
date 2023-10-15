@@ -1,4 +1,8 @@
 ---
 - name: "update : OpenBSD updates"
-  include_tasks: openbsd.yaml
+  ansible.builtin.include_tasks: openbsd.yaml
   when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "update : Alpine updates"
+  ansible.builtin.include_tasks: alpine.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

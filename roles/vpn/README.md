@@ -1,15 +1,21 @@
-# `vpn` - yviel's FSA v0.2.0
-This role sets up a wireguard client or server.
-
-Please note that currently both server and client need to be managed by FSA, and the configuration for both *must be applied simultaneously*.
+# `vpn` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
     - [Client Example](#client-example)
     - [Server Example](#server-example)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role sets up a wireguard client and server.
+
+Note that at the moment configuration of both client and server must happen simultaneously.
+
+### Works Against
+- OpenBSD
 
 ### Dependencies
 When called, it activates the following roles:
@@ -20,36 +26,37 @@ When called, it activates the following roles:
 ### Example Usage
 The role lives under the `net` key.
 
-#### Client Example
+#### Example
 ```yaml
 net:
+  routing: true
   vpn:
     type: wireguard
-    # iface through which to run the VPN
+    # interface to use for connections
     iface: eth0
-    # vpn-internal address
-    addr: 172.16.0.2
-    peer:
-      # must be an existing fsa host
-      name: myvpnserver
-      # vpn-internal server address
-      addr: 172.16.0.1
-```
-
-#### Server Example
-```yaml
-net:
-  vpn:
-    type: wireguard
-    # interface to listen on
-    iface: eth0
-    # vpn-internal address
-    addr: 172.16.0.1
+    # addr inside the vpn
+    myaddr: 172.16.0.1
+    # NAT outgoing connections
+    natout: true
+    # my vpn peers
     peers:
-        # existing fsa host
-      - name: myvpnclient
-        # vpn-internal client ip
+      - name: mypeer
         addr: 172.16.0.2
+        pubkey: "my-longass-pubkey-string"
+        # listen for incoming connections
+        listen: true
+
+# a client would have these options set instead
+net:
+  vpn:
+    type: wireguard
+    iface: eth0
+    myaddr: 172.16.0.2
+    peers:
+      - name: myserver
+        addr: vpn.example.com
+        pubkey: "my-longass-pubkey-string"
+        keepalive: 25
 ```
 
 ### Reference
@@ -58,21 +65,17 @@ net:
 |`net.vpn`|Parent|No|(none)|Activates `vpn`|
 |`net.vpn.type`|String|Yes|(none)|Only `wireguard` for now|
 |`net.vpn.iface`|String|Yes|(none)|Interface to bind to|
-|`net.vpn.addr`|String|Yes|(none)|Machine's IP inside the VPN network|
-|`net.vpn.port`|Int|if server|`51820`|Port to listen on|
-|`net.vpn.psk`|Bool|No|`false`|Whether to generate and use a Pre-Shared Key|
-|`net.vpn.persist`|Bool|No|`false`|Autorestart the connection if it drops|
-|`net.vpn.peer`|Parent|if client|(none)|VPN server to use|
-|`net.vpn.peer.name`|String|if client|(none)|Inventory name of server host|
-|`net.vpn.peer.addr`|String|if client|(none)|IP or Domain name of the server|
-|`net.vpn.peer.port`|Int|No|`51820`|VPN server port to connect to|
-|`net.vpn.peer.keepalive`|Int|No|(none)|Interval in seconds of keepalive-packets|
-|`net.vpn.peers`|Dict|if server|(none)|VPN clients to serve|
-|`net.vpn.peers.name`|String|if server|(none)|Inventory name of client|
-|`net.vpn.peers.addr`|String|if server|(none)|Client's IP within the VPN net|
-|`net.vpn.peers.keepalive`|Int|No|(none)|Interval in seconds of keepalive-packets|
+|`net.vpn.myaddr`|String|Yes|(none)|Machine's IP inside the VPN network|
+|`net.vpn.natout`|Bool|No|`false`|Whether to NAT out VPN Clients|
+|`net.vpn.peers`|Dict|Yes|(none)|VPN peers to connect to|
+|`net.vpn.peers.name`|String|Yes|(none)|Inventory name of peer, or generic identifier string|
+|`net.vpn.peers.addr`|String|Yes|(none)|If `listen: true`, peer's VPN IP. If `listen:false`, peer's public address|
+|`net.vpn.peers.listen`|Bool|No|`false`|If true, listens to incoming connections (instead of connecting out)|
+|`net.vpn.peers.pubkey`|String|No|(none)|Public key of peer. If undefined, will attempt to autoretrieve from inventory `name`|
+|`net.vpn.peers.psk`|String|No|(none)|Preshared Key. Can be the key contents, but can also be `remote` or `local`. Between FSA hosts this will be autoconfigured.|
+|`net.vpn.peers.keepalive`|Int|No|(none)|Interval in seconds of keepalive-packets to send|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [net](../net)

@@ -1,0 +1,90 @@
+{% if item == "drone" %}
+#image:
+#  tag: latest
+ingress:
+  enabled: true
+  hosts:
+    - host: "{{ k8s.drone.url }}"
+      paths:
+        - path: /
+          pathType: Prefix
+persistentVolume:
+  enabled: false
+extraSecretNamesForEnvFrom:
+  - drone-server-secret
+env:
+  DRONE_SERVER_HOST: "{{ k8s.drone.url }}"
+  DRONE_SERVER_PROTO: https
+  DRONE_GITEA_SERVER: "https://{{ k8s.drone.gitea.url }}"
+  DRONE_USER_CREATE: "username:{{ k8s.drone.admin }},admin:true"
+  DRONE_STARLARK_ENABLED: true
+extraSecretNamesForEnvFrom:
+  - drone-server-secret
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: "app.kubernetes.io/instance"
+              operator: In
+              values:
+                - drone-runner-docker
+                - drone
+        topologyKey: "kubernetes.io/hostname"
+{% elif item == "drone-runner-docker" %}
+#image:
+#  tag: latest
+replicaCount: {{ k8s.drone.runners.count | default('2') }}
+env:
+  DRONE_RPC_HOST: "drone:8080"
+  DRONE_RUNNER_CAPACITY: 1
+  DRONE_NAMESPACE_DEFAULT: drone
+  DRONE_RUNNER_NETWORK_OPTS: "com.docker.network.driver.mtu:1450"
+  DRONE_UI_DISABLED: true
+  DRONE_RUNNER_PRIVILEGED_IMAGES: "plugins/docker,thegeeklab/drone-docker-buildx"
+{% if k8s.drone.runners.insecure_registry is defined %}
+  DRONE_DOCKER_CONFIG: /etc/dockerjson/dockerconfigjson
+extraVolumes:
+  - name: storage
+    emptyDir: {}
+#  - name: drone-registry
+#    configMap:
+#      name: "drone-registry"
+#extraVolumeMounts:
+#  - mountPath: /etc/dockerjson
+#    name: "drone-registry"
+{% endif %}
+extraSecretNamesForEnvFrom:
+  - drone-agent-secret
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      - labelSelector:
+          matchExpressions:
+            - key: "app.kubernetes.io/instance"
+              operator: In
+              values:
+                - drone-runner-docker
+                - drone
+        topologyKey: "kubernetes.io/hostname"
+#gc:
+#  tag: latest
+dind:
+  tag: 24-dind
+  commandArgs:
+    - "--host"
+    - "tcp://localhost:2375"
+    - "--mtu=1450"
+{% if k8s.drone.runners.insecure_registry is defined %}
+    - "--insecure-registry"
+    - "{{ k8s.drone.runners.insecure_registry }}"
+#    - "--config-file"
+#    - "/etc/dockerjson/dockerconfigjson"
+#  extraVolumeMounts:
+#    - mountPath: /etc/dockerjson
+#      name: "drone-registry"
+#    - name: storage
+#      mountPath: /var/lib/docker
+#      subPath: docker
+{% endif %}
+{% endif %}

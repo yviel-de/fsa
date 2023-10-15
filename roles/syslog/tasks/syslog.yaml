@@ -1,0 +1,4 @@
+---
+- name: "obsd : setup syslog and logrotate"
+  include_tasks: openbsd_syslog.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

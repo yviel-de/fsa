@@ -1,0 +1,4 @@
+---
+- name: notify_restart
+  ansible.builtin.debug:
+    msg: "Please restart the box after fsa's completion for necessary kernel modules to load"

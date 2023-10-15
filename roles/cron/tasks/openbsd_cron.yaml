@@ -1,0 +1,18 @@
+---
+# if the file doesn't exist don't create it
+# this is to pass the no-change-on-no-config check
+- name: "obsd : template out /etc/crontab"
+  ansible.builtin.template:
+    src: crontab.j2
+    dest: /etc/crontab
+    mode: "0600"
+
+- name: "obsd : template out daily/weekly/monthly"
+  ansible.builtin.template:
+    src: "crontab.local.j2"
+    dest: "/etc/{{ item }}.local"
+    mode: "0600"
+  loop:
+    - daily
+    - weekly
+    - monthly

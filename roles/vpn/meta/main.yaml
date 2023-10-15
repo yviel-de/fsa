@@ -2,4 +2,3 @@
 dependencies:
   - role: net
   - role: fw
-  - role: cron

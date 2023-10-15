@@ -1,3 +1,5 @@
 ---
 dependencies:
+  - role: base
+  - role: net
   - role: tls

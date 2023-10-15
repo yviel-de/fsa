@@ -6,22 +6,6 @@
     dest: /var/www/vmd_autoinstall/{{ vm.name }}-install.conf
     mode: 0644
 
-# dhcpd.conf doesn't do includes, so we have to mess with blockinfile
-- name: "install : openbsd : openbsd : configure dhcpd"
-  ansible.builtin.blockinfile:
-    path: /etc/dhcpd.conf
-    marker: "# {{ vm.name }} autoinstall {mark}"
-    insertafter: ^        max-lease-time 260;$
-    block: |
-      host {{ vm.name }} {
-        hardware ethernet {{ '8a:d8:ad' | community.general.random_mac(seed=vm.name) }};
-        fixed-address 100.92.0.{{ 254 | random(start=2, seed=vm.name) }};
-        filename "auto_install";
-        next-server 100.92.0.1;
-        option host-name "{{ vm.name }}";
-      }
-  notify: dhcpd_restart
-
 - name: "install : openbsd : openbsd : reload"
   ansible.builtin.meta: flush_handlers
 

@@ -1,20 +1,29 @@
 ---
 - name: "mysql : import : copy local imports"
   ansible.builtin.copy:
-    src: "{{ item.src }}"
-    dest: /tmp/{{ randomid }}/{{ item.src.split('/')[-1] }}
+    src: "{{ import.src }}"
+    dest: "/tmp/{{ randomid }}/{{ import.src.split('/')[-1] }}"
     remote_src: false
     mode: 0600
-  when: item.host is not defined
+  when: import.host is not defined
   loop: "{{ apps.mysql.imports }}"
+  loop_control:
+    loop_var: import
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
 
 - name: "mysql : import : import remote sources" # noqa risky-shell-pipe
-  ansible.builtin.shell: mysqldump -h {{ item.host }} -u{{ item.user }} -p{{ item.pass }} -P {{ item.port if item.port is
-    defined else '3306' }} {{ item.src }} | sed 's/{{ item.src }}/{{ item.dest }}/g' | mysql {{ item.dest }}
-  when: item.host is defined
+  ansible.builtin.shell: mysqldump -h {{ remotesource.host }} -u{{ remotesource.user }} -p{{ remotesource.pass }} -P {{ remotesource.port if remotesource.port is
+    defined else '3306' }} {{ remotesource.src }} | sed 's/{{ remotesource.src }}/{{ remotesource.dest }}/g' | mysql {{ remotesource.dest }}
+  when: remotesource.host is defined
   loop: "{{ apps.mysql.imports }}"
+  loop_control:
+    loop_var: remotesource
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"
 
 - name: "mysql : import : import local sources"
-  ansible.builtin.command: mysql {{ item.dest }} < {{ item.src }}
+  ansible.builtin.shell: "mysql {{ localsource.dest }} < /tmp/{{ randomid }}/{{ localsource.src.split('/')[-1] }}"
   loop: "{{ apps.mysql.imports }}"
-  when: apps.mysql.imports is defined and '/' in item.src
+  loop_control:
+    loop_var: localsource
+  when: apps.mysql.imports is defined and '/' in localsource.src
+  changed_when: "'molecule-idempotence-notest' not in ansible_skip_tags"

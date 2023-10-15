@@ -1,6 +1,6 @@
 {% if mail.listen | selectattr('tls', 'defined') %}
-pki {{ ansible_fqdn }} cert "/etc/ssl/{{ ansible_fqdn }}.fullchain.pem"
-pki {{ ansible_fqdn }} key "/etc/ssl/private/{{ ansible_fqdn }}.key"
+pki {{ base.name | default(ansible_fqdn) }} cert "/etc/ssl/{{ base.name | default(ansible_fqdn) }}.fullchain.pem"
+pki {{ base.name | default(ansible_fqdn) }} key "/etc/ssl/private/{{ base.name | default(ansible_fqdn) }}.key"
 {% endif %}
 
 table aliases file:/etc/mail/aliases
@@ -40,11 +40,11 @@ filter "whitelist" phase connect match !src <whitelist> disconnect "550 denied"
 {% if mail.listen is defined %}
 {% for port in mail.listen %}
 {% set ns = namespace(filterlist=[]) %}
-{% if port.filter == 'conn' or port.filter == 'spam' %}
+{% if port.filter|default(false) == 'conn' or port.filter|default(false) == 'spam' %}
 {% set ns.filterlist = ns.filterlist + [ "check_rdns" ] %}
 {% set ns.filterlist = ns.filterlist + [ "check_fcrdns" ] %}
 {% endif %}
-{% if port.filter == 'spam' %}
+{% if port.filter|default(false) == 'spam' %}
 {% set ns.filterlist = ns.filterlist + [ "senderscore" ] %}
 {% set ns.filterlist = ns.filterlist + [ "rspamd" ] %}
 {% endif %}
@@ -66,9 +66,9 @@ listen on {{ port.addr }}
  port {{ port.port }}
 {%- endif -%}
 {%- if port.tls is defined and port.tls == 'force' %}
- tls-require pki {{ ansible_fqdn }}
+ tls-require pki {{ base.name | default(ansible_fqdn) }}
 {%- elif port.tls is defined and port.tls == 'true' %}
- tls pki {{ ansible_fqdn }}
+ tls pki {{ base.name | default(ansible_fqdn) }}
 {%- endif -%}
 {%- if port.auth | default(false) %}
  auth <passwd>
@@ -87,10 +87,12 @@ listen on {{ port.addr }}
 action "incoming" \
 {% if mail.boxes is defined %}
     lmtp "/var/dovecot/lmtp" rcpt-to virtual <virtuals>
+{% elif mail.relay is defined %}
+    relay host {{ mail.relay }}
 {% else %}
     mbox alias <aliases>
 {% endif %}
-action "outgoing" relay helo {{ ansible_fqdn }}
+action "outgoing" relay helo {{ base.name | default(ansible_fqdn) }}
 
 match from any for domain <domains> action "incoming"
 match from local for any action "outgoing"

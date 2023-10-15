@@ -1,0 +1,8 @@
+---
+- name: "obsd : run base"
+  ansible.builtin.include_tasks: openbsd_base.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : run base"
+  ansible.builtin.include_tasks: alpine_base.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

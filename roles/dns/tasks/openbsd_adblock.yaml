@@ -10,6 +10,11 @@
     group: bin
     mode: 755
   register: adblock_changed
+  # DL fails from time to time, so we retry a couple times
+  until: adblock_changed.state == "file"
+  retries: 10
+  delay: 2
+  ignore_errors: yes
   notify:
     - unbound_restart
 
@@ -17,7 +22,7 @@
   ansible.builtin.template:
     src: adblock_whitelist.j2
     dest: /var/unbound/db/adblock_whitelist
-    mode: 0640
+    mode: "0644"
   when: net.dns.filter.whitelist is defined
   register: adblock_whitelist_changed
   notify:
@@ -45,8 +50,20 @@
     - install -o _adblock -g wheel -m 640 /dev/null /var/log/unbound-adblock/unbound-adblock.log
     - install -o _adblock -g wheel -m 640 /dev/null /var/log/unbound-adblock/unbound-adblock.log.0.gz
   when: adblock_changed.changed
+  changed_when: false
+
+# need to enable the service first and then start it. otherwise obsd73 would fail.
+- name: "obsd : adblock : enable unbound"
+  ansible.builtin.service:
+    name: unbound
+    enabled: true
+- name: "obsd : adblock : start unbound"
+  ansible.builtin.service:
+    name: unbound
+    state: started
 
 - name: "obsd : dns : adblock : create first ruleset" # noqa no-handler
-  ansible.builtin.command: "{{ 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist'\
-    \ if net.dns.filter.whitelist is defined else 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd' }}"
+  ansible.builtin.command: "{{ 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist' if net.dns.filter.whitelist is defined\
+    \ else 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd' }}"
   when: adblock_changed.changed or adblock_whitelist_changed.changed
+  changed_when: false

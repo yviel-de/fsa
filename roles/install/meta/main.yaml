@@ -1,6 +1,7 @@
 ---
 dependencies:
   - role: httpd
+  - role: relay
   - role: dhcp
   - role: isos
   - role: cron

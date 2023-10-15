@@ -1,0 +1,8 @@
+---
+- name: "obsd : setup cron"
+  include_tasks: openbsd_cron.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'
+
+- name: "alpine : setup cron"
+  include_tasks: alpine_cron.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

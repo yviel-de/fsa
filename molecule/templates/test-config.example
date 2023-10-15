@@ -1,0 +1,25 @@
+# full example of test-config.yaml config switches that can be set
+---
+# optional, default ansible
+verifier: testinfra
+# instances to create
+machines:
+    # name
+  - name: machinename
+    # vagrant template name. if box_url is specified that will be the imported name
+    box: templatename
+    # optional, if template doesn't exist. file needs to be local, repo tbd
+    # NOTE: needs to be double-quoted! iE '"http://my-url"'
+    box_url: http:// or file://
+    # any host_vars you want to declare
+    vars:
+      any:
+        hostvars:
+          - go
+          - here
+# default test sequence.
+# an initial "create" and "destroy" aswell as a final "destroy" are added automatically
+scenario:
+  - converge
+  - idempotence
+  - verify

@@ -1,7 +1,15 @@
-# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+{% set my = namespace(port='80') %}
+{% if web.relay.frontends is defined %}
+{% for frontend in web.relay.frontends %}
+# {{ frontend }}
+{% if frontend.port == 80 %}
+{% set my.port = '8080' %}
+{% endif %}
+{% endfor %}
+{% endif %}
 
 server "*" {
-	listen on * port 80
+	listen on * port {{ my.port }}
 	location "/.well-known/acme-challenge/*" {
 		root "/acme"
 		request strip 2

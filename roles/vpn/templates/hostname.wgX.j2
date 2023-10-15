@@ -1,19 +1,49 @@
-{% if net.vpn.peers is defined %}
-wgkey {{ host_privkey.stdout }}
-wgport {{ net.vpn.port | default('51820') }}
-{% for client in net.vpn.peers %}
-{% for key in peer_pubkeys.results %}
-{% if key.item.name == client.name %}
-wgpeer {{ key.stdout }} wgaip {{ client.addr }}/32{% if client.keepalive is defined %} wgpka {{ client.keepalive }}{% endif %}{% if client.psk is defined %} wgpsk {{ own_psk.stdout }}{% endif %}
+wgkey {{ myprivkey['content'] | b64decode }}
+{%- if net.vpn.peers | selectattr('listen', 'true') | length > 0 %}
+wgport 51820
 {% endif %}
-{% endfor %}
-{% endfor %}
-
-inet {{ net.vpn.addr }}/24
-{% else %}
-wgkey {{ host_privkey.stdout }}
-wgpeer {{ peer_pubkey.stdout }} wgendpoint {{ net.vpn.peer.addr }} {{ net.vpn.peer.port | default('51820') }} wgaip 0.0.0.0/0{% if net.vpn.peer.psk is defined %} wgpsk {{ peer_psk.stdout }}{% endif %}{% if net.vpn.peer.keepalive is defined %} wgpka {{ net.vpn.peer.keepalive }}{% endif %}
-
-inet {{ net.vpn.addr }}/24
+{%- for peer in net.vpn.peers %}
+{%- if peer.pubkey is defined -%}
+wgpeer {{ peer.pubkey }}
+{%- else %}
+{%- for result in peers_pubkeys.results -%}
+{%- if result.peer.name == peer.name -%}
+wgpeer {{ result.stdout }}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- if peer.psk is defined %}
+{%- if peer.psk == 'local' %}
+ wgpsk {{ mypsk['content'] | b64decode | trim }}
+{%- elif peer.psk == 'remote' %}
+{%- for result in peers_psks.results %}
+{%- if result.peer.name == peer.name %}
+ wgpsk {{ result.stdout }}
+{%- endif -%}
+{%- endfor -%}
+{%- else -%}
+ wgpsk {{ peer.psk }}
+{%- endif -%}
+{%- elif peer.pubkey is not defined %}
+{%- if peer.listen | default(false) %}
+ wgpsk {{ mypsk['content'] | b64decode | trim }}
+{%- else %}
+{%- for result in peers_psks.results %}
+{%- if result.peer.name == peer.name %}
+ wgpsk {{ result.stdout }}
+{%- endif -%}
+{%- endfor -%}
+{%- endif -%}
+{%- endif -%}
+{%- if not peer.listen | default(false) %}
+ wgendpoint {{ peer.addr }} 51820 wgaip 0.0.0.0/0
+{%- else %}
+ wgaip {{ peer.addr }}
+{%- endif %}
+{% if peer.keepalive is defined %}
+ wgpka {{ peer.keepalive }}
 {% endif %}
+
+{% endfor %}
+inet {{ net.vpn.myaddr }}/24
 up

@@ -1,4 +1,4 @@
 ---
 dependencies:
-  - role: httpd
-  - role: php
+  - role: tls
+    when: apps.webdav.tls is defined

@@ -7,8 +7,7 @@
   ansible.builtin.template:
     src: pf.conf.j2
     dest: /etc/pf.conf
-    mode: 0600
+    mode: "0600"
   notify:
     - pf_syntax
     - pf_reload
-  changed_when: false

@@ -1,14 +1,4 @@
 ---
-# we only need to exec these once
-- name: run VM prerequisites
-  include_tasks: prereqs.yaml
+- name: VM management
+  include_tasks: vms.yaml
   when: virt.vms is defined
-
-- name: template VMs
-  include_tasks: template.yaml
-  when: ansible_distribution|lower == 'openbsd' and virt.vms is defined and virt.vms|selectattr('template', 'defined')|length
-    > 0
-
-- name: run VMs
-  include_tasks: run.yaml
-  when: virt.vms is defined and not virt.vms|selectattr('install', 'defined')|length > 0

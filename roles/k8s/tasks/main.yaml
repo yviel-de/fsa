@@ -1,0 +1,4 @@
+---
+- name: "k8s : helm"
+  ansible.builtin.include_tasks: helm.yaml
+  when: k8s.helm is defined and fsa.k8s is defined

@@ -1,0 +1,4 @@
+---
+- name: "obsd : set up unbound"
+  ansible.builtin.include_tasks: openbsd_unbound.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

@@ -1,0 +1,24 @@
+{# this generic block handles all the entries \#}
+{% if base.cron.entries is defined %}
+{% for entry in base.cron.entries %}
+{% if entry.schedule == item %}
+{% if entry.user | default ('root') == 'root' %}
+{{ entry.command }}
+{% else %}
+su -l {{ entry.user }} -c "{{ entry.command }}"
+{% endif %}
+{% endif %}
+{% endfor %}
+{% endif %}
+{# and here the special cases \#}
+{% if virt.vms is defined and item == "daily" %}
+# cleanup for openbsd autoinstall
+find /var/www/vmd_autoinstall/ -type f -cmin +1440 -delete
+for i in $(find /etc/ -type f -name vm.*_autoinstall.conf); do name=$(echo $i | cut -d '.' -f2 | cut -d '_' -f -1); if ! vmctl show | grep -q $name; then rm -f $i; fi; done
+{% endif %}
+{# huge ass conditional for all things needing tls \#}
+{% if item == "weekly" and ((mail.listen is defined and mail.listen|selectattr('tls', 'defined')|length > 0) or (web.sites is defined and web.sites|selectattr('tls', 'defined')|length > 0) or (web.relay.frontends is defined and web.relay.frontends |selectattr('tls', 'defined')|length > 0)) %}
+# acme
+for i in $(cat /etc/acme-client.conf | grep ^domain | cut -d ' ' -f2); do /usr/sbin/acme-client -v $i; cp /etc/ssl/$i.fullchain.pem /etc/ssl/$i.crt; done
+for i in httpd smtpd dovecot relayd; do if rcctl check $i >/dev/null; then rcctl restart $i >/dev/null; fi; done
+{% endif %}

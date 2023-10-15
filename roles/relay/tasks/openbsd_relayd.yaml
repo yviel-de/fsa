@@ -1,4 +1,13 @@
 ---
+- name: "obsd : relay : setup limits"
+  ansible.builtin.template:
+    src: relayd.login.conf
+    dest: /etc/login.conf.d/relayd
+    mode: 0600
+  notify:
+    - relayd_syntax
+    - relayd_restart
+
 - name: "obsd : relay : template the config"
   ansible.builtin.template:
     src: relayd.conf.j2

@@ -1,5 +1,2 @@
-echo 0 > /proc/sys/net/bridge/bridge-nf-call-arptables
-echo 0 > /proc/sys/net/bridge/bridge-nf-call-iptables
-echo 0 > /proc/sys/net/bridge/bridge-nf-call-ip6tables
 iptables -A FORWARD -p tcp --tcp-flags SYN,RST SYN -j TCPMSS --clamp-mss-to-pmtu
 exit 0

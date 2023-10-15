@@ -1,4 +1,11 @@
-# $OpenBSD: httpd.conf,v 1.22 2020/11/04 10:34:18 denis Exp $
+{% set my = namespace(port='80') %}
+{% if web.relay.frontends is defined %}
+{% for frontend in web.relay.frontends %}
+{% if frontend.port == 80 %}
+{% set my.port = '8080' %}
+{% endif %}
+{% endfor %}
+{% endif %}
 
 prefork 16
 types { include "/usr/share/misc/mime.types" }
@@ -13,7 +20,7 @@ include "/etc/httpd.{{ site.name }}.conf"
 
 {% if virt is defined %}
 server "100.92.0.1" {
-    listen on 100.92.0.1 port 80
+    listen on 100.92.0.1 port {{ my.port }}
     root "/vmd_autoinstall"
     tcp { nodelay }
     log style forwarded
@@ -23,12 +30,12 @@ server "100.92.0.1" {
 {% endif %}
 
 server "*" {
-	listen on * port 80
+	listen on * port {{ my.port }}
 	location "/.well-known/acme-challenge/*" {
 		root "/acme"
 		request strip 2
 	}
-{% if web.sites is defined and web.sites | selectattr('tls', 'defined') | length > 0 %}
+{% if (web.sites is defined and web.sites | selectattr('tls', 'defined') | length > 0) or (web.relay is defined and web.relay.frontends | selectattr('tls', 'defined') | length > 0) %}
 	location * {
 		block return 302 "https://$HTTP_HOST$REQUEST_URI"
 	}

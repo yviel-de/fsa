@@ -1,0 +1,4 @@
+---
+- name: "openbsd : dovecot"
+  ansible.builtin.include_tasks: openbsd_boxes.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

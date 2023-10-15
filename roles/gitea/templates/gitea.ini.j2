@@ -1,26 +1,47 @@
 # Configuration cheat sheet: https://docs.gitea.io/en-us/config-cheat-sheet/
 
+{% if ansible_distribution | lower == 'openbsd' %}
+RUN_USER = _gitea
+{% else %}
 RUN_USER = gitea
+{% endif %}
 RUN_MODE = prod
 
 APP_NAME = {{ apps.gitea.name | default('My Beautiful Gitea') }}
 
 [repository]
-ROOT = /var/lib/gitea/git
 SCRIPT_TYPE = sh
+{% if ansible_distribution | lower == 'openbsd' %}
+ROOT = /var/gitea/gitea-repositories
+{% else %}
+ROOT = /var/lib/gitea/git
+{% endif %}
+DEFAULT_PRIVATE = private
 
 [server]
+{% if not ansible_distribution | lower == 'openbsd' %}
 STATIC_ROOT_PATH = /usr/share/webapps/gitea
 APP_DATA_PATH    = /var/lib/gitea/data
+{% else %}
+APP_DATA_PATH    = /var/gitea/data
+{% endif %}
 LFS_START_SERVER = true
+HTTP_ADDR        = 127.0.0.1
+ROOT_URL         = "{{ apps.gitea.url }}"
 
 [database]
 DB_TYPE = sqlite3
+{% if ansible_distribution | lower == 'openbsd' %}
+PATH = /var/gitea/db/gitea.db
+{% else %}
 PATH = /var/lib/gitea/db/gitea.db
+{% endif %}
 SSL_MODE = disable
 
 [session]
-PROVIDER = file
+PROVIDER = memory
+COOKIE_SECURE = true
+COOKIE_NAME = {{ apps.gitea.name | default('my-beautiful-gitea') | replace(' ', '-') }}
 
 [log]
 ROOT_PATH = /var/log/gitea
@@ -35,3 +56,9 @@ DEFAULT_THEME = arc-green
 DEFAULT_EMAIL_NOTIFICATIONS: disabled
 DISABLE_REGULAR_ORG_CREATION: true
 
+[security]
+{% if not install | default(false) %}
+INSTALL_LOCK = true
+{% else %}
+INSTALL_LOCK = false
+{% endif %}

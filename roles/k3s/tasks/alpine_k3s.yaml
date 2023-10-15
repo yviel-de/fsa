@@ -1,0 +1,14 @@
+---
+- name: "Look for pre-existing k3s installation"
+  ansible.builtin.stat:
+    path: /usr/local/bin/k3s
+  register: k3s_binary
+- name: "Run pre-installation tasks"
+  include_tasks: pre_k3s.yaml
+  when: not k3s_binary.stat.exists or apps.k3s.upgrade|default(false) == true
+- name: "Install k3s"
+  include_tasks: install_k3s.yaml
+  when: not k3s_binary.stat.exists or apps.k3s.upgrade|default(false) == true
+- name: "Run post-installation tasks"
+  include_tasks: post_k3s.yaml
+  when: not k3s_binary.stat.exists or apps.k3s.upgrade|default(false) == true

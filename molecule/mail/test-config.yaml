@@ -1,0 +1,62 @@
+---
+machines:
+  - name: mail-server-b
+    box: obsd72
+    vars:
+      base:
+        name: mailserverb.local
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.74
+            netmask: 255.255.255.0
+        dns:
+          listen:
+            - 0.0.0.0
+          localdata:
+            - mailservera.local. IN A 172.16.123.76
+            - mailservera.local. IN MX 0 mailservera.local.
+          access:
+            - 172.16.123.0/24 allow
+      mail:
+        listen:
+          - addr: all
+            port: smtp
+            filter: no
+          - addr: all
+            port: submission
+            filter: no
+        domains:
+          - mailserverb.local
+        relay: mailservera.local
+
+  - name: mail-server-a
+    box: obsd72
+    vars:
+      base:
+        name: mailservera.local
+      net:
+        ifaces:
+          - name: vio0
+          - name: vio1
+            addr: 172.16.123.76
+            netmask: 255.255.255.0
+        dns:
+          listen:
+            - 0.0.0.0
+          localdata:
+            - mailserverb.local. IN A 172.16.123.74
+            - mailserverb.local. IN MX 0 mailserverb.local.
+          access:
+            - 172.16.123.0/24 allow
+      mail:
+        listen:
+          - addr: all
+            port: smtp
+            filter: conn
+          - addr: all
+            port: submission
+            filter: no
+        domains:
+          - mailservera.local

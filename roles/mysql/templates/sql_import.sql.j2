@@ -5,8 +5,8 @@ CREATE DATABASE IF NOT EXISTS {{ db }};
 {% endif %}
 {% if apps.mysql.users is defined %}
 {% for user in apps.mysql.users %}
-{% if user.on is defined %}
-GRANT ALL ON {{ user.on }}.* TO
+{% if user.ondb is defined %}
+GRANT ALL ON {{ user.ondb }}.* TO
 {%- else %}
 CREATE USER IF NOT EXISTS
 {%- endif %}

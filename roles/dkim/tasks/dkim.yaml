@@ -1,0 +1,4 @@
+---
+- name: "openbsd : run dkim"
+  ansible.builtin.include_tasks: openbsd_dkim.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

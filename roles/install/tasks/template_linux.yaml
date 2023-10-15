@@ -1,0 +1,53 @@
+---
+- name: "vms : template : linux : allow ssh proxyjump"
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^AllowTcpForwarding'
+    line: AllowTcpForwarding yes
+  register: sshdproxy
+
+- name: "vms : template : linux : reload sshd"
+  ansible.builtin.service:
+    name: sshd
+    state: reloaded
+  when: sshdproxy.changed
+
+- name: "vms : template : linux : add to inventory"
+  ansible.builtin.add_host:
+    name: "{{ item.name }}"
+    ansible_host: "100.92.0.{{ 254 | random(start=2, seed=item.name) }}"
+    ansible_ssh_common_args: '-o ProxyCommand="ssh -p {{ ansible_port }} -W %h:%p -q {{ ansible_user }}@{{ ansible_hostname }}"'
+    remote_user: root
+
+- name: "vms : template : linux : wait for VM to boot"
+  ansible.builtin.wait_for:
+    host: "100.92.0.{{ 254 | random(start=2, seed=item.name) }}"
+    port: 22
+    delay: 10
+    search_regex: OpenSSH
+  delegate_to: "{{ inventory_hostname }}"
+
+- name: "vms : template : linux : wait some more lol"
+  ansible.builtin.wait_for:
+    timeout: 10
+
+- name: "vms : template : linux : bootstrap VM"
+  ansible.builtin.raw: which python3 || pkg_add python3 || apk add python3 || apt install python3
+  delegate_to: "{{ item.name }}"
+  remote_user: root
+
+- name: "vms : template : linux : template out script"
+  ansible.builtin.template:
+    src: mkvagrant.sh.j2
+    dest: /tmp/mkvagrant.sh
+  delegate_to: "{{ item.name }}"
+  remote_user: root
+
+# cant exec playbook from inside role
+- name: "vms : template : linux : exec script"
+  ansible.builtin.shell: sh /tmp/mkvagrant.sh
+  delegate_to: "{{ item.name }}"
+  async: 10
+  poll: 0
+  remote_user: root
+

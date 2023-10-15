@@ -26,8 +26,10 @@
   changed_when: disk.rc == 0
 
 - name: "prereqs : openbsd : create interfaces"
-  ansible.builtin.shell: cd /dev; sh MAKEDEV tap{{ tapnr }}
+  ansible.builtin.shell: sh MAKEDEV tap{{ tapnr }}
   loop: "{{ virt.vms }}"
   loop_control:
     index_var: tapnr
   changed_when: false
+  args:
+    chdir: /dev

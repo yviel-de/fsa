@@ -1,0 +1,4 @@
+---
+- name: "alpine : setup k3s server or agent"
+  include_tasks: alpine_k3s.yaml
+  when: ansible_facts['os_family']|lower == 'alpine'

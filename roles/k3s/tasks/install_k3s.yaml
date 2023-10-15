@@ -1,0 +1,20 @@
+---
+# curl is required for installing, wireguard-tools required for wireguard native flannel backend
+- name: "install necessary tools"
+  ansible.builtin.package:
+    name:
+      - curl
+      - wireguard-tools
+    state: latest
+  notify: notify_restart
+
+# installs/upgrades k3s server/agent
+- name: "install / update k3s"
+  ansible.builtin.shell: 'curl -sfL https://get.k3s.io | sh -s - {{ item.cmd }} '
+  loop:
+    - cmd: "server --flannel-backend wireguard-native --disable traefik {{('--token ' ~ token|default('')) if token is defined else ''}} {{('--datastore-endpoint ' ~ dbep|default('')) if dbep is defined else ''}} {{('--node-name ' ~ apps.k3s.name|default('')) if apps.k3s.name is defined else ''}}"
+      type: "server"
+    - cmd: "agent --server {{ apps.k3s.server|default('') }} --token {{ token|default('')}} {{ ('--node-name ' ~ apps.k3s.name)|default('') }}"
+      type: "agent"
+  when: apps.k3s.type == item.type
+  no_log: true

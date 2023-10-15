@@ -50,16 +50,29 @@
   when: virt is defined
 
 # the way alpine does networking restarts is kill everything, then bring everything up
-# that kills the ssh connec, which kills the command before it can bring things back up
-# this is a workaround
+# that kills the ansible ssh connec, which kills the restart before it can complete
+# we work around it by templating out a script and execing it
+# todo: write ifconfig abstraction? this "changed" thing is a hack
 - name: "alpine : template restart script"
   ansible.builtin.template:
     src: alpine_netrestart.sh.j2
     dest: /tmp/alpine_netrestart.sh
     mode: 0755
-  when: virt is defined
+  when: virt is defined and netchange.changed
 
 - name: "alpine : exec it"
-  ansible.builtin.shell: sh /tmp/alpine_netrestart.sh & sleep 16
-  when: virt is defined
+  ansible.builtin.shell: "sleep 1 & sh /tmp/alpine_netrestart.sh &"
+  when: virt is defined and netchange.changed
   changed_when: false
+  async: 10
+  poll: 0
+
+- name: "alpine : wait for return"
+  ansible.builtin.wait_for:
+    timeout: 5
+  delegate_to: localhost
+
+- name: "alpine : wait for return"
+  wait_for_connection:
+    timeout: 600
+  when: virt is defined and netchange.changed

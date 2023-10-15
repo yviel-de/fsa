@@ -1,8 +1,4 @@
 ---
-- name: "openbsd : vmd"
-  include_tasks: openbsd_vmd.yaml
-  when: virt is defined and ansible_facts['os_family']|lower == 'openbsd'
-
-- name: "alpine : kvm"
-  include_tasks: alpine_kvm.yaml
-  when: virt is defined and ansible_facts['os_family']|lower == 'alpine'
+- name: "hypervisor"
+  include_tasks: virt.yaml
+  when: virt is defined

@@ -2,3 +2,4 @@
 dependencies:
   - role: net
   - role: syslog
+  - role: dns

@@ -1,0 +1,33 @@
+---
+# retrieve pubkeys
+- name: "obsd : wireguard : connect to peers"
+  ansible.builtin.include_role:
+    name: fsa_connect
+  vars:
+    target: "{{ peer.name }}"
+  loop: "{{ net.vpn.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.pubkey is not defined
+
+- name: "obsd : wireguard : retrieve pubkeys"
+  ansible.builtin.command: cat /etc/wireguard/public.key
+  delegate_to: "{{ peer.name }}"
+  register: peers_pubkeys
+  no_log: true
+  changed_when: false
+  loop: "{{ net.vpn.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.pubkey is not defined
+
+- name: "obsd : wireguard : retrieve psks"
+  ansible.builtin.command: cat /etc/wireguard/preshared.key
+  delegate_to: "{{ peer.name }}"
+  register: peers_psks
+  no_log: true
+  changed_when: false
+  loop: "{{ net.vpn.peers }}"
+  loop_control:
+    loop_var: peer
+  when: peer.pubkey is not defined or peer.psk | default("") == "remote"

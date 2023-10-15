@@ -14,7 +14,7 @@
   ansible.builtin.template:
     src: dovepass.j2
     dest: /etc/mail/dovepass
-    mode: 0600
+    mode: "0600"
     owner: _dovecot
   notify:
     - dovecot_syntax
@@ -29,6 +29,8 @@
           :openfiles-max=2048:\
           :tc=daemon:
     marker: "# dovecot limits {mark}"
+    state: absent
+    # todo: set in login.conf.d, remove after removal
 
 - name: "obsd : boxes : check for dh params"
   ansible.builtin.stat:
@@ -42,8 +44,7 @@
 
 # when getting rid of shell, print warning that this'll take a while
 - name: "obsd : boxes : create dh params"
-  ansible.builtin.shell: if [ ! -f /etc/dovecot/dh.pem ]; then openssl dhparam -out /etc/dovecot/dh.pem 4096; >/dev/null 2>&1
-    && echo changed; fi
+  ansible.builtin.shell: if [ ! -f /etc/dovecot/dh.pem ]; then openssl dhparam -out /etc/dovecot/dh.pem 4096; >/dev/null 2>&1 && echo changed; fi
   register: dhparams
   changed_when: dhparams.stdout == "changed"
   failed_when: false
@@ -53,7 +54,7 @@
   ansible.builtin.template:
     src: "{{ item }}.j2"
     dest: /etc/dovecot/{{ item }}
-    mode: 0640
+    mode: "0640"
   loop:
     - conf.d/10-auth.conf
     - conf.d/10-ssl.conf

@@ -1,16 +1,4 @@
 ---
-- name: "apps : install MySQL"
-  include_tasks: alpine_mysql.yaml
-  when: apps.mysql is defined and ansible_distribution | lower == 'alpine'
-
-- name: "apps : install MySQL"
-  include_tasks: openbsd_mysql.yaml
-  when: apps.mysql is defined and ansible_distribution | lower == 'openbsd'
-
-- name: "apps : setup server"
-  include_tasks: mysql_config.yaml
+- name: "setup MySQL"
+  include_tasks: mysql.yaml
   when: apps.mysql is defined
-
-- name: "apps : import sources"
-  include_tasks: mysql_import.yaml
-  when: apps.mysql.imports is defined

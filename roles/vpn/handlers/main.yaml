@@ -1,6 +1,16 @@
 ---
 - name: wg_netstart
-  ansible.builtin.command: sh /etc/netstart wg0
+  ansible.builtin.shell: ifconfig wg0 destroy; sh /etc/netstart wg0
 
 - name: sysctl_forwarding
   ansible.builtin.command: /usr/sbin/sysctl net.inet.ip.forwarding=1
+
+# todo: ipsec not fully implemented
+#- name: iked_syntax
+#  ansible.builtin.command: iked -n
+#
+#- name: iked_restart
+#  ansible.builtin.service:
+#    name: iked
+#    state: restarted
+#    enabled: true

@@ -1,0 +1,6 @@
+---
+- name: radicale_restart
+  ansible.builtin.service:
+    name: radicale
+    state: restarted
+    enabled: true

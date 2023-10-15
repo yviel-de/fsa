@@ -2,8 +2,17 @@
 - name: httpd_syntax
   ansible.builtin.command: httpd -n
 
+- name: nginx_syntax
+  ansible.builtin.command: nginx -t
+
 - name: httpd_restart
   ansible.builtin.service:
     name: httpd
+    state: restarted
+    enabled: true
+
+- name: nginx_restart
+  ansible.builtin.service:
+    name: nginx
     state: restarted
     enabled: true

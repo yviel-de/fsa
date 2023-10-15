@@ -1,7 +1,8 @@
 ---
 - name: unbound_adblock
-  ansible.builtin.command: "{{ 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist'\
-    \ if net.dns.filter.whitelist is defined else 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd' }}"
+  ansible.builtin.command: "{{ 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd -w /var/unbound/db/adblock_whitelist' if net.dns.filter.whitelist is defined\
+    \ else 'doas -u _adblock /usr/local/bin/unbound-adblock -O openbsd' }}"
+  changed_when: false
 
 - name: unbound_restart
   ansible.builtin.service:

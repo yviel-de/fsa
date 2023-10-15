@@ -1,13 +1,18 @@
-# `isos` - yviel's FSA v0.2.0
-This role downloads install media for choice OSses and configures them to output to serial console.
-
-Once an ISO is built, it is re-used for 3 months before it is re-built.
+# `isos` - yviel's FSA v0.3.0
 
 ## Table of Contents
+ - [Description](#description)
  - [Dependencies](#dependencies)
  - [Example Usage](#example-usage)
  - [Reference](#reference)
  - [See Also](#see-also)
+
+### Description
+This role downloads install media for select OSses and reconfigures it to output to serial console.
+
+### Works Against
+- OpenBSD
+- Alpine
 
 ### Dependencies
 This role calls no other roles.
@@ -28,9 +33,9 @@ virt:
 ### Reference
 |Key|Type|Required|Default|Summary|
 |--|--|--|--|--|
-|`virt.vms.iso`|String|No|(none)|Absolute path to iso file, or `openbsd`/`alpine`/`debian`.|
+|`virt.vms.iso`|String|No|(none)|Absolute path to ISO file or one of `openbsd`, `alpine`, `debian`|
 
-([Full Reference here](docs/REFERENCE.md))
+([Full Reference here](../../docs/REFERENCE.md))
 
 ### See Also
  - [virt](../virt/)

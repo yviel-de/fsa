@@ -1,0 +1,4 @@
+---
+- name: "openbsd : rspamd"
+  ansible.builtin.include_tasks: openbsd_rspamd.yaml
+  when: ansible_facts['os_family']|lower == 'openbsd'

@@ -1,0 +1,35 @@
+mpd:
+  basedir: "{{ '/var/spool/mpd' if ansible_distribution | lower == 'openbsd' else '/var/lib/mpd' }}"
+  webradios:
+    - name: groovesalad
+      source: https://somafm.com/groovesalad.pls
+    - name: classicsalad
+      source: https://somafm.com/gsclassic.pls
+    - name: dronezone
+      source: https://somafm.com/dronezone.pls
+    - name: darkzone
+      source: https://somafm.com/darkzone.pls
+    - name: streetlounge
+      source: https://somafm.com/illstreet.pls
+    - name: burbsofgoa
+      source: https://somafm.com/suburbsofgoa.pls
+    - name: defcon
+      source: https://somafm.com/defcon.pls
+    - name: fluidhop
+      source: https://somafm.com/fluid.pls
+    - name: lush
+      source: https://somafm.com/lush.pls
+    - name: dubstep
+      source: https://somafm.com/dubstep.pls
+    - name: beatblender
+      source: https://somafm.com/beatblender.pls
+    - name: stationsoma
+      source: https://somafm.com/spacestation.pls
+    - name: thetrip
+      source: https://somafm.com/thetrip.pls
+    - name: progpsy
+      source: http://host.psyradio.fm:2199/tunein/progressive.pls
+    - name: chillpsy
+      source: http://host.psyradio.fm:2199/tunein/chillout.pls
+    - name: jungletrain
+      source: https://jungletrain.net/128kbps.pls

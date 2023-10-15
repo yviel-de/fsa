@@ -7,4 +7,3 @@
   notify:
     - acme_syntax
     - acme_request
-  changed_when: false

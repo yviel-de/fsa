@@ -1,4 +1,4 @@
 ---
-- name: "apps: install Baikal DAV"
-  include_tasks: openbsd_baikal.yaml
-  when: apps.webdav is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "WebDAV"
+  include_tasks: radicale.yaml
+  when: apps.webdav is defined

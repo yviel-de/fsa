@@ -5,5 +5,9 @@
     dest: /etc/syslog.conf
     mode: 0644
   notify: syslogd_restart
-  # this is effectively all roles that have a syslog dep
-  when: net.dns is defined or net.dhcp is defined or web.relay is defined
+
+- name: "obsd : setup newsyslog.conf"
+  ansible.builtin.template:
+    src: newsyslog.conf.j2
+    dest: /etc/newsyslog.conf
+    mode: 0644

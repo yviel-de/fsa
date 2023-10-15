@@ -1,4 +1,4 @@
 ---
-- name: "obsd : set up unbound"
-  include_tasks: openbsd_unbound.yaml
-  when: net.dns is defined and ansible_facts['os_family']|lower == 'openbsd'
+- name: "dns server"
+  ansible.builtin.include_tasks: dns.yaml
+  when: net.dns is defined
